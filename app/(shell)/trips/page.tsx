@@ -18,7 +18,7 @@ export default async function TripsPage() {
   const memberCounts = Object.fromEntries(counts.map((c) => [c.tripId, Number(c.count)]))
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <TripList trips={userTrips} memberCounts={memberCounts} />
     </div>
   )

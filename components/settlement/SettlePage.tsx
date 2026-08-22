@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ResponsiveFormModal } from '@/components/ui/responsive-form-modal'
+import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Input } from '@/components/ui/input'
 import { computeBalances, simplifyDebts } from '@/lib/settlement'
 import { createPayment } from '@/server/actions/payments'
@@ -56,6 +58,7 @@ function getDebtBreakdown(
 }
 
 export function SettlePage({ tripId, currency, initialMembers, initialExpenses, initialSplits, initialPayments }: Props) {
+  const router = useRouter()
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [selectedDebt, setSelectedDebt] = useState<{ from: string; to: string; amount: number } | null>(null)
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
@@ -124,12 +127,14 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
       date: payDate,
     })
     setPaymentOpen(false)
-    window.location.reload()
+    router.refresh()
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Settle Up</h1>
+    <>
+      <MobilePageHeader title="Settle Up" backHref={`/trips/${tripId}`} />
+    <div className="p-4 md:p-6">
+      <h1 className="hidden md:block text-2xl font-bold mb-6">Settle Up</h1>
 
       <div className="mb-6">
         <h2 className="text-lg font-semibold mb-3">Balances</h2>
@@ -176,11 +181,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
         )}
       </div>
 
-      <Dialog open={paymentOpen} onOpenChange={setPaymentOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Record Payment</DialogTitle>
-          </DialogHeader>
+      <ResponsiveFormModal open={paymentOpen} onOpenChange={setPaymentOpen} title="Record Payment">
           {selectedDebt && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -260,8 +261,8 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
+      </ResponsiveFormModal>
     </div>
+    </>
   )
 }

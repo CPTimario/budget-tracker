@@ -4,8 +4,8 @@ import { useState } from 'react'
 import { TripCard } from './TripCard'
 import { TripForm } from './TripForm'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus } from 'lucide-react'
+import { ResponsiveFormModal } from '@/components/ui/responsive-form-modal'
+import { Plus, MapPin } from 'lucide-react'
 import type { Trip } from '@/lib/db/schema'
 
 export function TripList({ trips, memberCounts = {} }: { trips: Trip[]; memberCounts?: Record<string, number> }) {
@@ -22,8 +22,10 @@ export function TripList({ trips, memberCounts = {} }: { trips: Trip[]; memberCo
 
       {trips.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
+          <MapPin className="h-12 w-12 mx-auto mb-3 opacity-40" />
           <p className="text-lg mb-2">No trips yet</p>
-          <p className="text-sm">Create your first trip to start tracking expenses</p>
+          <p className="text-sm mb-4">Create your first trip to start tracking expenses</p>
+          <Button onClick={() => setOpen(true)}>Create Trip</Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -33,14 +35,9 @@ export function TripList({ trips, memberCounts = {} }: { trips: Trip[]; memberCo
         </div>
       )}
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Create New Trip</DialogTitle>
-          </DialogHeader>
-          <TripForm onCancel={() => setOpen(false)} />
-        </DialogContent>
-      </Dialog>
+      <ResponsiveFormModal open={open} onOpenChange={setOpen} title="Create New Trip">
+        <TripForm onCancel={() => setOpen(false)} />
+      </ResponsiveFormModal>
     </div>
   )
 }

@@ -8,6 +8,7 @@ import { CATEGORIES } from '@/lib/categories'
 import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Receipt, Users, ArrowLeftRight } from 'lucide-react'
 import type { Trip, Member, Expense } from '@/lib/db/schema'
 
@@ -65,9 +66,11 @@ export function TripDashboard({ trip, members, expenses }: Props) {
   , [expenses])
 
   return (
-    <div className="p-6 space-y-6">
+    <>
+      <MobilePageHeader title={trip.name} backHref="/trips" />
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">{trip.name}</h1>
+        <h1 className="hidden md:block text-2xl font-bold">{trip.name}</h1>
         <p className="text-muted-foreground">{trip.destination}</p>
       </div>
 
@@ -110,15 +113,17 @@ export function TripDashboard({ trip, members, expenses }: Props) {
               {categoryData.length === 0 ? (
                 <p className="text-center text-muted-foreground py-8">No expenses yet</p>
               ) : (
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}>
-                      {categoryData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                    </Pie>
-                    <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="h-[200px] md:h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}>
+                        {categoryData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -128,14 +133,16 @@ export function TripDashboard({ trip, members, expenses }: Props) {
           <Card>
             <CardHeader><CardTitle>Daily Spending</CardTitle></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={dailyData}>
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
-                  <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[200px] md:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={dailyData}>
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
+                    <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -144,16 +151,18 @@ export function TripDashboard({ trip, members, expenses }: Props) {
           <Card>
             <CardHeader><CardTitle>Spending by Member</CardTitle></CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={memberSpendingData} layout="vertical">
-                  <XAxis type="number" tick={{ fontSize: 12 }} />
-                  <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} />
-                  <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
-                  <Bar dataKey="spent" radius={[0, 4, 4, 0]}>
-                    {memberSpendingData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              <div className="h-[200px] md:h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={memberSpendingData} layout="vertical">
+                    <XAxis type="number" tick={{ fontSize: 12 }} />
+                    <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} />
+                    <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
+                    <Bar dataKey="spent" radius={[0, 4, 4, 0]}>
+                      {memberSpendingData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -180,5 +189,6 @@ export function TripDashboard({ trip, members, expenses }: Props) {
       )}
 
     </div>
+    </>
   )
 }
