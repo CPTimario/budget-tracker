@@ -1,0 +1,208 @@
+'use client'
+
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
+import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { createExpense, updateExpense } from '@/server/actions/expenses'
+import { CATEGORIES } from '@/lib/categories'
+import { format } from 'date-fns'
+import { ChevronDown } from 'lucide-react'
+
+const schema = z.object({
+  description: z.string().min(1),
+  amount: z.number().positive(),
+  category: z.enum(['travel', 'food', 'accommodation', 'activities', 'shopping', 'health', 'gifts', 'misc']),
+  paidById: z.string().uuid(),
+  type: z.enum(['personal', 'shared']),
+  date: z.string(),
+})
+
+type FormData = z.infer<typeof schema>
+
+interface Member { id: string; name: string; isSelf: boolean }
+interface Expense { id: string; description: string; amount: string; category: string; paid_by_id: string; type: string; date: string }
+
+interface Props {
+  tripId: string
+  members: Member[]
+  currency: string
+  expense?: Expense | null
+  onSuccess: () => void
+  onCancel: () => void
+}
+
+export function ExpenseForm({ tripId, members, currency, expense, onSuccess, onCancel }: Props) {
+  const selfMember = members.find(m => m.isSelf)
+  const defaultPaidById: string = expense?.paid_by_id ?? selfMember?.id ?? members[0]?.id ?? ''
+  const [type, setType] = useState<'personal' | 'shared'>(expense?.type as 'personal' | 'shared' ?? 'personal')
+  const [selectedMembers, setSelectedMembers] = useState<string[]>(
+    expense ? [] : members.map(m => m.id)
+  )
+  const [splitMode, setSplitMode] = useState<'equal' | 'custom'>('equal')
+  const [customSplits, setCustomSplits] = useState<Record<string, string>>({})
+
+  const { register, handleSubmit, watch, setValue, formState: { errors, isSubmitting } } = useForm<FormData>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      description: expense?.description ?? '',
+      amount: expense ? parseFloat(expense.amount) : undefined,
+      category: (expense?.category as FormData['category']) ?? 'food',
+      paidById: expense?.paid_by_id ?? selfMember?.id ?? members[0]?.id,
+      type: type,
+      date: expense?.date ?? format(new Date(), 'yyyy-MM-dd'),
+    },
+  })
+
+  const amount = watch('amount') ?? 0
+  const paidById = watch('paidById')
+
+  const allIds = members.map(m => m.id)
+  const allSelected = selectedMembers.length === members.length
+
+  function toggleMember(id: string) {
+    setSelectedMembers(prev =>
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    )
+  }
+
+  function toggleAll() {
+    setSelectedMembers(allSelected ? [] : allIds)
+  }
+
+  function getEqualShare() {
+    if (selectedMembers.length === 0 || !amount || isNaN(amount)) return 0
+    return Math.round((amount / selectedMembers.length) * 100) / 100
+  }
+
+  async function onSubmit(data: FormData) {
+    const splits = type === 'shared'
+      ? selectedMembers.map(memberId => ({
+          memberId,
+          shareAmount: splitMode === 'equal'
+            ? getEqualShare()
+            : parseFloat(customSplits[memberId] ?? '0'),
+        }))
+      : undefined
+
+    if (expense) {
+      await updateExpense(expense.id, tripId, { ...data, type, splits })
+    } else {
+      await createExpense(tripId, { ...data, type, splits })
+    }
+    onSuccess()
+  }
+
+  return (
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <Input placeholder="Description" {...register('description')} />
+      {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+
+      <div className="flex gap-2">
+        <div className="flex-1">
+          <Input type="number" step="0.01" placeholder="Amount" {...register('amount', { valueAsNumber: true })} />
+        </div>
+        <span className="flex items-center text-sm text-muted-foreground px-2">{currency}</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Select onValueChange={(v) => v && setValue('category', v as FormData['category'])} defaultValue={expense?.category ?? 'food'}>
+          <SelectTrigger><SelectValue placeholder="Category" /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(CATEGORIES).map(([key, cat]) => (
+              <SelectItem key={key} value={key}>{cat.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={paidById} onValueChange={(v) => v && setValue('paidById', v)}>
+          <SelectTrigger>
+            <SelectValue placeholder="Paid by">
+              {members.find(m => m.id === paidById)?.name ?? 'Paid by'}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            {members.map(m => (
+              <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Input type="date" {...register('date')} />
+
+      <div className="flex gap-2">
+        <Button type="button" variant={type === 'personal' ? 'default' : 'outline'} size="sm" onClick={() => { setType('personal'); setValue('type', 'personal') }}>Personal</Button>
+        <Button type="button" variant={type === 'shared' ? 'default' : 'outline'} size="sm" onClick={() => { setType('shared'); setValue('type', 'shared') }}>Shared</Button>
+      </div>
+
+      {type === 'shared' && (
+        <div className="border rounded-lg p-3 space-y-3">
+          <div className="flex items-center gap-2">
+            <div className="flex gap-2 shrink-0">
+              <Button type="button" variant={splitMode === 'equal' ? 'default' : 'outline'} size="sm" onClick={() => setSplitMode('equal')}>Equal</Button>
+              <Button type="button" variant={splitMode === 'custom' ? 'default' : 'outline'} size="sm" onClick={() => setSplitMode('custom')}>Custom</Button>
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger className="flex-1 flex items-center justify-between rounded-md border px-3 py-1.5 text-sm bg-background hover:bg-accent transition-colors">
+                <span className="truncate">
+                  {allSelected ? 'All members' : selectedMembers.length === 0 ? 'Select members' : `${selectedMembers.length} selected`}
+                </span>
+                <ChevronDown className="h-4 w-4 ml-2 shrink-0 text-muted-foreground" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuCheckboxItem checked={allSelected} closeOnClick={false} onCheckedChange={toggleAll} className="font-medium">
+                  All
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuSeparator />
+                {members.map(m => (
+                  <DropdownMenuCheckboxItem
+                    key={m.id}
+                    checked={selectedMembers.includes(m.id)}
+                    closeOnClick={false}
+                    onCheckedChange={() => toggleMember(m.id)}
+                  >
+                    {m.name}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {splitMode === 'equal' && selectedMembers.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {currency} {getEqualShare().toFixed(2)} each · {selectedMembers.length} {selectedMembers.length === 1 ? 'member' : 'members'}
+            </p>
+          )}
+
+          {splitMode === 'custom' && selectedMembers.length > 0 && (
+            <div className="space-y-2">
+              {members.filter(m => selectedMembers.includes(m.id)).map(m => (
+                <div key={m.id} className="flex items-center gap-3">
+                  <span className="flex-1 text-sm">{m.name}</span>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    className="w-24 h-7 text-sm"
+                    value={customSplits[m.id] ?? ''}
+                    onChange={e => setCustomSplits(prev => ({ ...prev, [m.id]: e.target.value }))}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex gap-2 justify-end">
+        <Button type="button" variant="outline" onClick={onCancel}>Cancel</Button>
+        <Button type="submit" disabled={isSubmitting}>{isSubmitting ? 'Saving...' : expense ? 'Update' : 'Save'}</Button>
+      </div>
+    </form>
+  )
+}
