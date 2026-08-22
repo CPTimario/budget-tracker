@@ -26,7 +26,7 @@ Create `.env.local`:
 ```
 DATABASE_URL=<supabase-postgres-connection-string>
 NEXT_PUBLIC_SUPABASE_URL=<supabase-project-url>
-NEXT_PUBLIC_SUPABASE_ANON_KEY=<supabase-anon-key>
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<supabase-anon-key>
 ```
 
 ### 3. Run migrations
