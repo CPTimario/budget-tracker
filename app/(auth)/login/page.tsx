@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader } from '@/components/ui/card'
+import { Wallet } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -50,11 +51,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background p-4">
+      <div className="flex flex-col items-center gap-6 w-full max-w-sm">
+        <div className="flex items-center gap-2">
+          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
+            <Wallet className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <span className="text-xl font-bold">Budget Tracker</span>
+        </div>
+        <Card className="w-full">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Budget Tracker</CardTitle>
-          <CardDescription>Sign in to manage your trip expenses</CardDescription>
+          <CardDescription>Sign in to continue</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button
@@ -99,6 +106,7 @@ export default function LoginPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

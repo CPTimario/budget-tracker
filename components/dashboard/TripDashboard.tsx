@@ -9,7 +9,7 @@ import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
-import { Receipt, Users, ArrowLeftRight } from 'lucide-react'
+import { Receipt, Users, ArrowLeftRight, DollarSign, TrendingDown, TrendingUp } from 'lucide-react'
 import type { Trip, Member, Expense } from '@/lib/db/schema'
 
 interface Props {
@@ -76,22 +76,57 @@ export function TripDashboard({ trip, members, expenses }: Props) {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Budget</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm text-muted-foreground">Total Budget</CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
           <CardContent><p className="text-2xl font-bold">{trip.currency} {totalBudget.toFixed(0)}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Total Spent</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm text-muted-foreground">Total Spent</CardTitle>
+              <TrendingDown className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
           <CardContent><p className="text-2xl font-bold">{trip.currency} {totalSpent.toFixed(0)}</p></CardContent>
         </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Remaining</CardTitle></CardHeader>
-          <CardContent><p className={`text-2xl font-bold ${remaining >= 0 ? 'text-green-600' : 'text-red-500'}`}>{trip.currency} {remaining.toFixed(0)}</p></CardContent>
+        <Card className={remaining >= 0 ? 'ring-1 ring-primary/30 bg-primary/5' : 'ring-1 ring-destructive/30 bg-destructive/5'}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm text-muted-foreground">Remaining</CardTitle>
+              {remaining >= 0 ? <TrendingUp className="h-4 w-4 text-muted-foreground" /> : <TrendingDown className="h-4 w-4 text-muted-foreground" />}
+            </div>
+          </CardHeader>
+          <CardContent><p className={`text-2xl font-bold ${remaining >= 0 ? 'text-primary' : 'text-destructive'}`}>{trip.currency} {remaining.toFixed(0)}</p></CardContent>
         </Card>
         <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm text-muted-foreground">Expenses</CardTitle></CardHeader>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm text-muted-foreground">Expenses</CardTitle>
+              <Receipt className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </CardHeader>
           <CardContent><p className="text-2xl font-bold">{expenses.length}</p></CardContent>
         </Card>
       </div>
+
+      {totalBudget > 0 && (
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>Budget used</span>
+            <span>{Math.round((totalSpent / totalBudget) * 100)}%</span>
+          </div>
+          <div className="h-2 bg-muted rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all bg-primary"
+              style={{ width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-3 flex-wrap">
         <Link href={`/trips/${trip.id}/expenses`}><Button variant="outline" size="sm"><Receipt className="h-4 w-4 mr-2" />Expenses</Button></Link>
@@ -139,7 +174,7 @@ export function TripDashboard({ trip, members, expenses }: Props) {
                     <XAxis dataKey="date" tick={{ fontSize: 12 }} />
                     <YAxis tick={{ fontSize: 12 }} />
                     <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
-                    <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="amount" fill="#0d9488" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

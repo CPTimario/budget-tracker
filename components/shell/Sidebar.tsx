@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { MapPin, Receipt, Users, ArrowLeftRight, Settings, LogOut } from 'lucide-react'
+import { MapPin, Receipt, Users, ArrowLeftRight, Settings, LogOut, Wallet } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -58,9 +58,16 @@ export function Sidebar() {
 
   return (
     <aside className="hidden md:flex flex-col w-64 border-r bg-card h-screen sticky top-0">
-      <div className="p-4 border-b">
-        <h1 className="font-bold text-lg">Budget Tracker</h1>
-        <p className="text-xs text-muted-foreground">Mission Trip Expenses</p>
+      <div className="p-4 border-b bg-gradient-to-b from-primary/5 to-transparent">
+        <div className="flex items-center gap-2.5">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+            <Wallet className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <div>
+            <h1 className="font-bold text-sm leading-tight">Budget Tracker</h1>
+            <p className="text-xs text-muted-foreground leading-tight">Mission Trip Expenses</p>
+          </div>
+        </div>
       </div>
 
       <nav className="flex-1 p-3 space-y-1">
