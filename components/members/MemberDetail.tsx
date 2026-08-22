@@ -120,7 +120,7 @@ export function MemberDetail({ trip, member, allMembers, expenses, expenseSplits
         </div>
 
         {/* KPI Row */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Card>
             <CardHeader className="pb-1 pt-3 px-3">
               <CardTitle className="text-xs text-muted-foreground">Budget</CardTitle>
@@ -137,13 +137,30 @@ export function MemberDetail({ trip, member, allMembers, expenses, expenseSplits
               <p className="text-sm md:text-lg font-bold">{formatCurrency(consumed, trip.currency)}</p>
             </CardContent>
           </Card>
+          <Card className={budget > 0 && budget - consumed < 0 ? 'ring-1 ring-destructive/30 bg-destructive/5' : ''}>
+            <CardHeader className="pb-1 pt-3 px-3">
+              <CardTitle className="text-xs text-muted-foreground">Remaining</CardTitle>
+            </CardHeader>
+            <CardContent className="px-3 pb-3">
+              {budget > 0 ? (
+                <p className={`text-sm md:text-lg font-bold ${budget - consumed < 0 ? 'text-destructive' : ''}`}>
+                  {formatCurrency(budget - consumed, trip.currency)}
+                </p>
+              ) : (
+                <p className="text-sm md:text-lg font-bold text-muted-foreground">—</p>
+              )}
+            </CardContent>
+          </Card>
           <Card className={balance > 0 ? 'ring-1 ring-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-900/10' : balance < 0 ? 'ring-1 ring-destructive/30 bg-destructive/5' : ''}>
             <CardHeader className="pb-1 pt-3 px-3">
-              <CardTitle className="text-xs text-muted-foreground">Net Balance</CardTitle>
+              <CardTitle className="text-xs text-muted-foreground">Settlement</CardTitle>
             </CardHeader>
             <CardContent className="px-3 pb-3">
               <p className={`text-sm md:text-lg font-bold ${balance > 0 ? 'text-emerald-600' : balance < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {balance > 0 ? `+${formatCurrency(balance, trip.currency)}` : balance < 0 ? `-${formatCurrency(Math.abs(balance), trip.currency)}` : 'Settled'}
+                {balance > 0 ? `+${formatCurrency(balance, trip.currency)}` : balance < 0 ? `-${formatCurrency(Math.abs(balance), trip.currency)}` : 'Settled up'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {balance > 0 ? 'owed by group' : balance < 0 ? 'owes group' : ''}
               </p>
             </CardContent>
           </Card>
