@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { MapPin, Receipt, Users, ArrowLeftRight } from 'lucide-react'
+import { MapPin, Receipt, Users, ArrowLeftRight, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function BottomNav() {
@@ -16,7 +16,10 @@ export function BottomNav() {
         { href: `/trips/${tripId}/members`, label: 'Members', icon: Users },
         { href: `/trips/${tripId}/settle`, label: 'Settle', icon: ArrowLeftRight },
       ]
-    : [{ href: '/trips', label: 'Trips', icon: MapPin }]
+    : [
+        { href: '/trips', label: 'Trips', icon: MapPin },
+        { href: '/settings', label: 'Settings', icon: Settings },
+      ]
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background z-50" aria-label="Main navigation">
@@ -25,7 +28,7 @@ export function BottomNav() {
           const Icon = item.icon
           const isActive =
             pathname === item.href ||
-            (item.href !== `/trips/${tripId}` && pathname.startsWith(item.href))
+            (tripId != null && item.href !== `/trips/${tripId}` && pathname.startsWith(item.href))
           return (
             <Link
               key={item.href}
