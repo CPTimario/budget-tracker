@@ -19,21 +19,27 @@ export function BottomNav() {
     : [{ href: '/trips', label: 'Trips', icon: MapPin }]
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background z-50">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background z-50" aria-label="Main navigation">
       <div className="flex" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {items.map((item) => {
           const Icon = item.icon
-          const isActive = pathname === item.href
+          const isActive =
+            pathname === item.href ||
+            (item.href !== `/trips/${tripId}` && pathname.startsWith(item.href))
           return (
-            <Link key={item.href} href={item.href} className="flex-1">
-              <div className={cn(
-                'relative flex flex-col items-center py-2 text-xs transition-colors',
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-label={item.label}
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
+                'relative flex-1 flex flex-col items-center py-2 text-xs transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground'
-              )}>
-                {isActive && <span className="absolute top-0 inset-x-2 h-0.5 bg-primary rounded-full" />}
-                <Icon className="h-5 w-5 mb-1" />
-                {item.label}
-              </div>
+              )}
+            >
+              {isActive && <span className="absolute top-0 inset-x-2 h-0.5 bg-primary rounded-full" />}
+              <Icon className="h-5 w-5 mb-1" />
+              {item.label}
             </Link>
           )
         })}

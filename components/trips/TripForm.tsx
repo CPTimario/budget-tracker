@@ -14,6 +14,9 @@ const schema = z.object({
   startDate: z.string().min(1, 'Start date required'),
   endDate: z.string().min(1, 'End date required'),
   currency: z.enum(['PHP', 'THB', 'USD', 'SGD', 'EUR']),
+}).refine(data => !data.startDate || !data.endDate || data.endDate >= data.startDate, {
+  message: 'End date must be on or after start date',
+  path: ['endDate'],
 })
 
 type FormData = z.infer<typeof schema>
@@ -33,21 +36,24 @@ export function TripForm({ onCancel }: { onCancel?: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <Input placeholder="Trip name (e.g. Thailand Mission Trip 2026)" {...register('name')} />
+        <label htmlFor="tripName" className="sr-only">Trip name</label>
+        <Input id="tripName" placeholder="Trip name (e.g. Thailand Mission Trip 2026)" {...register('name')} />
         {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
       </div>
       <div>
-        <Input placeholder="Destination" {...register('destination')} />
+        <label htmlFor="tripDestination" className="sr-only">Destination</label>
+        <Input id="tripDestination" placeholder="Destination" {...register('destination')} />
         {errors.destination && <p className="text-xs text-destructive mt-1">{errors.destination.message}</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">Start Date</label>
-          <Input type="date" {...register('startDate')} />
+          <label htmlFor="startDate" className="text-xs text-muted-foreground mb-1 block">Start Date</label>
+          <Input id="startDate" type="date" {...register('startDate')} />
         </div>
         <div>
-          <label className="text-xs text-muted-foreground mb-1 block">End Date</label>
-          <Input type="date" {...register('endDate')} />
+          <label htmlFor="endDate" className="text-xs text-muted-foreground mb-1 block">End Date</label>
+          <Input id="endDate" type="date" {...register('endDate')} />
+          {errors.endDate && <p className="text-xs text-destructive mt-1">{errors.endDate.message}</p>}
         </div>
       </div>
       <Select onValueChange={(v) => v && setValue('currency', v as FormData['currency'])} defaultValue="PHP">

@@ -15,6 +15,7 @@ import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Plus, Pencil, Trash2, Users } from 'lucide-react'
 import { createMember, updateMember, deleteMember } from '@/server/actions/members'
 import type { Member as DBMember } from '@/lib/db/schema'
+import { formatCurrency } from '@/lib/format'
 
 const PRESET_COLORS = [
   '#6366f1', '#8b5cf6', '#a855f7', '#d946ef', '#ec4899',
@@ -140,14 +141,14 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
                         <span className="font-medium">{member.name}</span>
                         {member.isSelf && <Badge variant="secondary">You</Badge>}
                       </div>
-                      <p className="text-sm text-muted-foreground">Budget: {currency} {parseFloat(member.initialBudget || '0').toLocaleString()}</p>
+                      <p className="text-sm text-muted-foreground">Budget: {formatCurrency(parseFloat(member.initialBudget || '0'), currency)}</p>
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon-xl" onClick={() => openEdit(member)}>
+                    <Button variant="ghost" size="icon-xl" aria-label="Edit member" onClick={() => openEdit(member)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon-xl" onClick={() => setPendingDeleteMemberId(member.id)}>
+                    <Button variant="ghost" size="icon-xl" aria-label="Remove member" onClick={() => setPendingDeleteMemberId(member.id)}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -179,6 +180,8 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
                 <button
                   key={c}
                   type="button"
+                  aria-label={`Select color ${c}`}
+                  aria-pressed={watchedColor === c}
                   onClick={() => setValue('color', c)}
                   className={`h-7 w-7 rounded-full border-2 transition-all ${watchedColor === c ? 'border-foreground scale-110' : 'border-transparent'}`}
                   style={{ backgroundColor: c }}

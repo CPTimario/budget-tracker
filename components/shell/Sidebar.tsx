@@ -28,16 +28,21 @@ function TripNavItems({ tripId }: { tripId?: string }) {
     <div className="mt-2 border-t pt-2">
       {items.map((item) => {
         const Icon = item.icon
-        const isActive = pathname === item.href
+        const isActive =
+          pathname === item.href ||
+          (item.href !== `/trips/${tripId}` && pathname.startsWith(item.href))
         return (
-          <Link key={item.href} href={item.href}>
-            <div className={cn(
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={isActive ? 'page' : undefined}
+            className={cn(
               'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
               isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-            )}>
-              <Icon className="h-4 w-4" />
-              {item.label}
-            </div>
+            )}
+          >
+            <Icon className="h-4 w-4" />
+            {item.label}
           </Link>
         )
       })}
@@ -75,14 +80,17 @@ export function Sidebar() {
           const Icon = item.icon
           const isActive = pathname === item.href
           return (
-            <Link key={item.href} href={item.href}>
-              <div className={cn(
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                 isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-              )}>
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </div>
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
             </Link>
           )
         })}

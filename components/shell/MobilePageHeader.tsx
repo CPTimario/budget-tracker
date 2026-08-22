@@ -13,7 +13,7 @@ export function MobilePageHeader({ title, backHref, action }: Props) {
   return (
     <header className="md:hidden sticky top-0 z-40 flex items-center px-3 py-2 border-b bg-background/95 backdrop-blur">
       {backHref ? (
-        <Link href={backHref}>
+        <Link href={backHref} aria-label="Go back">
           <Button variant="ghost" size="icon">
             <ChevronLeft className="h-5 w-5" />
           </Button>

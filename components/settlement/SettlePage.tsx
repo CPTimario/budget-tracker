@@ -9,6 +9,7 @@ import { ResponsiveFormModal } from '@/components/ui/responsive-form-modal'
 import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Input } from '@/components/ui/input'
 import { computeBalances, simplifyDebts } from '@/lib/settlement'
+import { formatCurrency } from '@/lib/format'
 import { createPayment } from '@/server/actions/payments'
 import { format } from 'date-fns'
 import { ArrowRight, History } from 'lucide-react'
@@ -68,6 +69,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
   const [customAmount, setCustomAmount] = useState('')
   const [useCustom, setUseCustom] = useState(false)
   const [payDate, setPayDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const balances = initialMembers.length
     ? computeBalances(initialMembers, initialExpenses, initialSplits, initialPayments)
@@ -102,8 +104,8 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
   function openPayment(debt: { from: string; to: string; amount: number }) {
     setSelectedDebt(debt)
     setPayDate(format(new Date(), 'yyyy-MM-dd'))
-    setUseCustom(true)
-    setCustomAmount(debt.amount.toFixed(2))
+    setUseCustom(false)
+    setCustomAmount('')
     const items = getDebtBreakdown(debt.from, debt.to, initialExpenses, initialSplits, paidSplitIds)
     setSelectedItems(new Set(items.filter(i => !i.paidByPaymentId).map(i => i.splitId)))
     setPaymentOpen(true)
@@ -129,16 +131,23 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
 
   async function handlePayment() {
     if (!selectedDebt || payAmount <= 0) return
-    await createPayment(tripId, {
-      fromMemberId: selectedDebt.from,
-      toMemberId: selectedDebt.to,
-      amount: payAmount,
-      date: payDate,
-      coveredSplitIds: Array.from(selectedItems),
-    })
-    setPaymentOpen(false)
-    router.refresh()
+    setIsSubmitting(true)
+    try {
+      await createPayment(tripId, {
+        fromMemberId: selectedDebt.from,
+        toMemberId: selectedDebt.to,
+        amount: payAmount,
+        date: payDate,
+        coveredSplitIds: Array.from(selectedItems),
+      })
+      setPaymentOpen(false)
+      router.refresh()
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+
+  const allChecked = unpaidBreakdown.length > 0 && selectedItems.size === unpaidBreakdown.length
 
   return (
     <>
@@ -155,11 +164,11 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
               <Card key={member.id}>
                 <CardContent className="pt-4">
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="h-6 w-6 rounded-full" style={{ backgroundColor: member.color }} />
-                    <span className="font-medium text-sm">{member.name}</span>
+                    <div className="h-6 w-6 rounded-full shrink-0" style={{ backgroundColor: member.color }} />
+                    <span className="font-medium text-sm truncate">{member.name}</span>
                   </div>
                   <Badge variant={balance >= 0 ? 'default' : 'destructive'}>
-                    {balance >= 0 ? '+' : ''}{balance.toFixed(2)}
+                    {balance >= 0 ? '+' : '-'}{formatCurrency(Math.abs(balance), currency)}
                   </Badge>
                 </CardContent>
               </Card>
@@ -176,12 +185,12 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
           <div className="space-y-3">
             {debts.map((debt, i) => (
               <Card key={i}>
-                <CardContent className="pt-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                <CardContent className="pt-4 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium">{getMemberName(debt.from)}</span>
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">{getMemberName(debt.to)}</span>
-                    <Badge variant="outline">{currency} {debt.amount.toFixed(2)}</Badge>
+                    <Badge variant="outline">{formatCurrency(debt.amount, currency)}</Badge>
                   </div>
                   <Button size="sm" onClick={() => openPayment(debt)}>Mark Paid</Button>
                 </CardContent>
@@ -223,7 +232,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span className="text-xs text-muted-foreground">{format(new Date(payment.date), 'MMM d, yyyy')}</span>
-                          <Badge variant="secondary">{currency} {parseFloat(String(payment.amount)).toFixed(2)}</Badge>
+                          <Badge variant="secondary">{formatCurrency(parseFloat(String(payment.amount)), currency)}</Badge>
                         </div>
                       </div>
                       {coveredExpenses.length > 0 && (
@@ -253,40 +262,48 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
 
               {breakdown.length > 0 && (
                 <div className="border rounded-lg overflow-hidden">
-                  <div
-                    className="flex items-center gap-3 px-3 py-2 bg-muted/50 cursor-pointer hover:bg-muted transition-colors"
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={allChecked}
+                    className="flex items-center gap-3 px-3 py-2 bg-muted/50 cursor-pointer hover:bg-muted transition-colors w-full text-left"
                     onClick={toggleAll}
                   >
-                    <input
-                      type="checkbox"
-                      readOnly
-                      checked={unpaidBreakdown.length > 0 && selectedItems.size === unpaidBreakdown.length}
-                      className="pointer-events-none"
-                    />
+                    <span
+                      className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center ${allChecked ? 'bg-primary border-primary' : 'border-input bg-background'}`}
+                      aria-hidden
+                    >
+                      {allChecked && <span className="block h-2 w-2 bg-primary-foreground rounded-sm" />}
+                    </span>
                     <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">All expenses</span>
-                  </div>
+                  </button>
                   <div className="divide-y max-h-56 overflow-y-auto">
                     {breakdown.map(item => {
                       const cat = CATEGORIES[item.category as keyof typeof CATEGORIES]
                       const isPaid = !!item.paidByPaymentId
                       const checked = selectedItems.has(item.splitId)
                       return (
-                        <div
+                        <button
                           key={item.splitId}
-                          className={`flex items-center gap-3 px-3 py-2 transition-colors ${
+                          type="button"
+                          role="checkbox"
+                          aria-checked={isPaid ? false : checked}
+                          disabled={isPaid}
+                          className={`flex items-center gap-3 px-3 py-2 transition-colors w-full text-left ${
                             isPaid
                               ? 'opacity-50 cursor-not-allowed bg-muted/30'
                               : `cursor-pointer hover:bg-muted/50 ${checked ? '' : 'opacity-60'}`
                           }`}
                           onClick={() => !isPaid && toggleItem(item.splitId)}
                         >
-                          <input
-                            type="checkbox"
-                            readOnly
-                            checked={isPaid ? false : checked}
-                            disabled={isPaid}
-                            className="pointer-events-none shrink-0"
-                          />
+                          <span
+                            className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center ${
+                              !isPaid && checked ? 'bg-primary border-primary' : 'border-input bg-background'
+                            }`}
+                            aria-hidden
+                          >
+                            {!isPaid && checked && <span className="block h-2 w-2 bg-primary-foreground rounded-sm" />}
+                          </span>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium truncate">{item.description}</p>
@@ -297,9 +314,9 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                             </p>
                           </div>
                           <span className="text-sm font-semibold tabular-nums shrink-0">
-                            {currency} {item.shareAmount.toFixed(2)}
+                            {formatCurrency(item.shareAmount, currency)}
                           </span>
-                        </div>
+                        </button>
                       )
                     })}
                   </div>
@@ -307,34 +324,50 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
               )}
 
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Amount</label>
+                <label htmlFor="payAmount" className="text-xs text-muted-foreground">Amount</label>
                 <Input
+                  id="payAmount"
                   type="number"
                   step="0.01"
                   value={useCustom ? customAmount : selectedTotal.toFixed(2)}
-                  onChange={e => { setUseCustom(true); setCustomAmount(e.target.value) }}
+                  readOnly={!useCustom}
+                  onChange={e => { setCustomAmount(e.target.value) }}
                   placeholder="Amount"
                 />
-                {useCustom && selectedTotal > 0 && (
+                {!useCustom ? (
+                  <button
+                    type="button"
+                    className="text-xs text-primary underline"
+                    onClick={() => { setUseCustom(true); setCustomAmount(selectedTotal.toFixed(2)) }}
+                  >
+                    Enter custom amount
+                  </button>
+                ) : selectedTotal > 0 ? (
                   <button
                     type="button"
                     className="text-xs text-primary underline"
                     onClick={() => { setUseCustom(false); setCustomAmount('') }}
                   >
-                    Reset to selected ({currency} {selectedTotal.toFixed(2)})
+                    Reset to selected ({formatCurrency(selectedTotal, currency)})
                   </button>
-                )}
+                ) : null}
               </div>
 
-              <Input
-                type="date"
-                value={payDate}
-                onChange={e => setPayDate(e.target.value)}
-              />
+              <div className="space-y-1">
+                <label htmlFor="payDate" className="text-sm font-medium">Payment date</label>
+                <Input
+                  id="payDate"
+                  type="date"
+                  value={payDate}
+                  onChange={e => setPayDate(e.target.value)}
+                />
+              </div>
 
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setPaymentOpen(false)}>Cancel</Button>
-                <Button onClick={handlePayment} disabled={payAmount <= 0}>Record Payment</Button>
+                <Button onClick={handlePayment} disabled={payAmount <= 0 || isSubmitting}>
+                  {isSubmitting ? 'Recording...' : 'Record Payment'}
+                </Button>
               </div>
             </div>
           )}

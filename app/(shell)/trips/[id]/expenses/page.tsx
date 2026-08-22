@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
-import { trips, members, expenses } from '@/lib/db/schema'
-import { eq, and, desc } from 'drizzle-orm'
+import { trips, members, expenses, expenseSplits } from '@/lib/db/schema'
+import { eq, and, desc, inArray } from 'drizzle-orm'
 import { ExpensesPage } from '@/components/expenses/ExpensesPage'
 
 export default async function TripExpensesPage({ params }: { params: Promise<{ id: string }> }) {
@@ -18,5 +18,18 @@ export default async function TripExpensesPage({ params }: { params: Promise<{ i
 
   if (!trip) return null
 
-  return <ExpensesPage tripId={id} initialTrip={trip} initialMembers={tripMembers} initialExpenses={tripExpenses} />
+  const expenseIds = tripExpenses.map(e => e.id)
+  const tripExpenseSplits = expenseIds.length
+    ? await db.select().from(expenseSplits).where(inArray(expenseSplits.expenseId, expenseIds))
+    : []
+
+  return (
+    <ExpensesPage
+      tripId={id}
+      initialTrip={trip}
+      initialMembers={tripMembers}
+      initialExpenses={tripExpenses}
+      initialExpenseSplits={tripExpenseSplits}
+    />
+  )
 }

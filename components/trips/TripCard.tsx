@@ -14,7 +14,7 @@ interface TripCardProps {
 
 export function TripCard({ trip, memberCount = 0 }: TripCardProps) {
   return (
-    <Link href={`/trips/${trip.id}`}>
+    <Link href={`/trips/${trip.id}`} aria-label={`View trip: ${trip.name}`}>
       <Card className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-primary to-primary/60" />
         <CardHeader className="pb-2">

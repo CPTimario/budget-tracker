@@ -10,9 +10,10 @@ import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Plus, Trash2, Pencil, Receipt } from 'lucide-react'
 import { deleteExpense } from '@/server/actions/expenses'
 import { CATEGORIES } from '@/lib/categories'
+import { formatCurrency } from '@/lib/format'
 import { format } from 'date-fns'
 import { ExpenseForm } from './ExpenseForm'
-import type { Trip, Member, Expense } from '@/lib/db/schema'
+import type { Trip, Member, Expense, ExpenseSplit } from '@/lib/db/schema'
 
 interface LocalExpense {
   id: string
@@ -22,10 +23,20 @@ interface LocalExpense {
   paid_by_id: string
   type: string
   date: string
+  splitMemberIds: string[]
 }
 
-function toLocal(e: Expense): LocalExpense {
-  return { id: e.id, description: e.description, amount: e.amount, category: e.category, paid_by_id: e.paidById, type: e.type, date: e.date }
+function toLocal(e: Expense, splitMap: Map<string, string[]>): LocalExpense {
+  return {
+    id: e.id,
+    description: e.description,
+    amount: e.amount,
+    category: e.category,
+    paid_by_id: e.paidById,
+    type: e.type,
+    date: e.date,
+    splitMemberIds: splitMap.get(e.id) ?? [],
+  }
 }
 
 interface Props {
@@ -33,11 +44,18 @@ interface Props {
   initialTrip: Trip
   initialMembers: Member[]
   initialExpenses: Expense[]
+  initialExpenseSplits: ExpenseSplit[]
 }
 
-export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpenses }: Props) {
+export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpenses, initialExpenseSplits }: Props) {
   const router = useRouter()
-  const [expenses, setExpenses] = useState<LocalExpense[]>(initialExpenses.map(toLocal))
+  const splitMap = new Map<string, string[]>()
+  initialExpenseSplits.forEach(s => {
+    const arr = splitMap.get(s.expenseId) ?? []
+    arr.push(s.memberId)
+    splitMap.set(s.expenseId, arr)
+  })
+  const [expenses, setExpenses] = useState<LocalExpense[]>(initialExpenses.map(e => toLocal(e, splitMap)))
   const members = initialMembers.map(m => ({ id: m.id, name: m.name, color: m.color, isSelf: m.isSelf }))
   const currency = initialTrip.currency
   const [open, setOpen] = useState(false)
@@ -96,7 +114,7 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
                     <div className="flex items-center justify-between gap-2">
                       <p className="font-medium truncate">{expense.description}</p>
                       <span className="font-semibold tabular-nums shrink-0">
-                        {currency} {parseFloat(expense.amount).toFixed(2)}
+                        {formatCurrency(parseFloat(expense.amount), currency)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -107,10 +125,10 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
                         {expense.type}
                       </Badge>
                       <div className="ml-auto flex items-center gap-1">
-                        <Button variant="ghost" size="icon-xl" onClick={() => { setEditExpense(expense); setOpen(true) }}>
+                        <Button variant="ghost" size="icon-xl" aria-label="Edit expense" onClick={() => { setEditExpense(expense); setOpen(true) }}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon-xl" onClick={() => setPendingDeleteId(expense.id)}>
+                        <Button variant="ghost" size="icon-xl" aria-label="Delete expense" onClick={() => setPendingDeleteId(expense.id)}>
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

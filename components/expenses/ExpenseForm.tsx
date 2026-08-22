@@ -7,10 +7,10 @@ import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { createExpense, updateExpense } from '@/server/actions/expenses'
 import { CATEGORIES } from '@/lib/categories'
+import { formatCurrency } from '@/lib/format'
 import { format } from 'date-fns'
 import { ChevronDown } from 'lucide-react'
 
@@ -26,7 +26,16 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>
 
 interface Member { id: string; name: string; isSelf: boolean }
-interface Expense { id: string; description: string; amount: string; category: string; paid_by_id: string; type: string; date: string }
+interface Expense {
+  id: string
+  description: string
+  amount: string
+  category: string
+  paid_by_id: string
+  type: string
+  date: string
+  splitMemberIds?: string[]
+}
 
 interface Props {
   tripId: string
@@ -39,10 +48,11 @@ interface Props {
 
 export function ExpenseForm({ tripId, members, currency, expense, onSuccess, onCancel }: Props) {
   const selfMember = members.find(m => m.isSelf)
-  const defaultPaidById: string = expense?.paid_by_id ?? selfMember?.id ?? members[0]?.id ?? ''
   const [type, setType] = useState<'personal' | 'shared'>(expense?.type as 'personal' | 'shared' ?? 'personal')
   const [selectedMembers, setSelectedMembers] = useState<string[]>(
-    expense ? [] : members.map(m => m.id)
+    expense?.splitMemberIds?.length
+      ? expense.splitMemberIds
+      : members.map(m => m.id)
   )
   const [splitMode, setSplitMode] = useState<'equal' | 'custom'>('equal')
   const [customSplits, setCustomSplits] = useState<Record<string, string>>({})
@@ -64,6 +74,10 @@ export function ExpenseForm({ tripId, members, currency, expense, onSuccess, onC
 
   const allIds = members.map(m => m.id)
   const allSelected = selectedMembers.length === members.length
+
+  const sumOfCustomSplits = members
+    .filter(m => selectedMembers.includes(m.id))
+    .reduce((sum, m) => sum + parseFloat(customSplits[m.id] || '0'), 0)
 
   function toggleMember(id: string) {
     setSelectedMembers(prev =>
@@ -100,12 +114,17 @@ export function ExpenseForm({ tripId, members, currency, expense, onSuccess, onC
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-      <Input placeholder="Description" {...register('description')} />
-      {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+      <div>
+        <label className="sr-only" htmlFor="description">Description</label>
+        <Input id="description" placeholder="Description" {...register('description')} />
+        {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+      </div>
 
       <div className="flex gap-2">
         <div className="flex-1">
-          <Input type="number" step="0.01" placeholder="Amount" {...register('amount', { valueAsNumber: true })} />
+          <label className="sr-only" htmlFor="amount">Amount</label>
+          <Input id="amount" type="number" step="0.01" placeholder="Amount" {...register('amount', { valueAsNumber: true })} />
+          {errors.amount && <p className="text-xs text-destructive mt-1">{errors.amount.message}</p>}
         </div>
         <span className="flex items-center text-sm text-muted-foreground px-2">{currency}</span>
       </div>
@@ -194,6 +213,9 @@ export function ExpenseForm({ tripId, members, currency, expense, onSuccess, onC
                   />
                 </div>
               ))}
+              <p className={`text-sm ${Math.abs(amount - sumOfCustomSplits) > 0.01 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                Remaining: {formatCurrency(amount - sumOfCustomSplits, currency)}
+              </p>
             </div>
           )}
         </div>
