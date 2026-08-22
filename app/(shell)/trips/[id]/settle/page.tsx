@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { db } from '@/lib/db'
-import { trips, members, expenses, expenseSplits, payments } from '@/lib/db/schema'
+import { trips, members, expenses, expenseSplits, payments, paymentExpenseSplits } from '@/lib/db/schema'
 import { eq, and, inArray } from 'drizzle-orm'
 import { SettlePage } from '@/components/settlement/SettlePage'
 
@@ -24,6 +24,11 @@ export default async function TripSettlePage({ params }: { params: Promise<{ id:
     ? await db.select().from(expenseSplits).where(inArray(expenseSplits.expenseId, expenseIds))
     : []
 
+  const paymentIds = tripPayments.map(p => p.id)
+  const paymentSplitLinks = paymentIds.length
+    ? await db.select().from(paymentExpenseSplits).where(inArray(paymentExpenseSplits.paymentId, paymentIds))
+    : []
+
   return (
     <SettlePage
       tripId={id}
@@ -32,6 +37,7 @@ export default async function TripSettlePage({ params }: { params: Promise<{ id:
       initialExpenses={tripExpenses}
       initialSplits={splits}
       initialPayments={tripPayments}
+      initialPaymentSplits={paymentSplitLinks}
     />
   )
 }

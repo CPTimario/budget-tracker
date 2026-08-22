@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { payments, trips } from '@/lib/db/schema'
+import { payments, paymentExpenseSplits, trips } from '@/lib/db/schema'
 import { createClient } from '@/lib/supabase/server'
 import { eq, and } from 'drizzle-orm'
 
@@ -13,6 +13,7 @@ const paymentSchema = z.object({
   amount: z.coerce.number().positive(),
   date: z.string(),
   notes: z.string().optional(),
+  coveredSplitIds: z.array(z.string().uuid()).optional(),
 })
 
 export async function createPayment(tripId: string, data: z.infer<typeof paymentSchema>) {
@@ -27,14 +28,23 @@ export async function createPayment(tripId: string, data: z.infer<typeof payment
 
   const parsed = paymentSchema.parse(data)
 
-  await db.insert(payments).values({
+  const [newPayment] = await db.insert(payments).values({
     tripId,
     fromMemberId: parsed.fromMemberId,
     toMemberId: parsed.toMemberId,
     amount: String(parsed.amount),
     date: parsed.date,
     notes: parsed.notes,
-  })
+  }).returning()
+
+  if (parsed.coveredSplitIds?.length) {
+    await db.insert(paymentExpenseSplits).values(
+      parsed.coveredSplitIds.map(splitId => ({
+        paymentId: newPayment.id,
+        expenseSplitId: splitId,
+      }))
+    )
+  }
 
   revalidatePath(`/trips/${tripId}/settle`)
   revalidatePath(`/trips/${tripId}`)

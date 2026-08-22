@@ -63,6 +63,12 @@ export const payments = pgTable('payments', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 })
 
+export const paymentExpenseSplits = pgTable('payment_expense_splits', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  paymentId: uuid('payment_id').notNull().references(() => payments.id, { onDelete: 'cascade' }),
+  expenseSplitId: uuid('expense_split_id').notNull().references(() => expenseSplits.id, { onDelete: 'cascade' }),
+})
+
 export type Trip = typeof trips.$inferSelect
 export type NewTrip = typeof trips.$inferInsert
 export type Member = typeof members.$inferSelect
@@ -73,3 +79,5 @@ export type ExpenseSplit = typeof expenseSplits.$inferSelect
 export type NewExpenseSplit = typeof expenseSplits.$inferInsert
 export type Payment = typeof payments.$inferSelect
 export type NewPayment = typeof payments.$inferInsert
+export type PaymentExpenseSplit = typeof paymentExpenseSplits.$inferSelect
+export type NewPaymentExpenseSplit = typeof paymentExpenseSplits.$inferInsert

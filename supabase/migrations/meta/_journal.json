@@ -29,6 +29,13 @@
       "when": 1787373244890,
       "tag": "0003_workable_champions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787376619740,
+      "tag": "0004_cloudy_whistler",
+      "breakpoints": true
     }
   ]
 }

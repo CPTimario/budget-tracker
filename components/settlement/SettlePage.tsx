@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { computeBalances, simplifyDebts } from '@/lib/settlement'
 import { createPayment } from '@/server/actions/payments'
 import { format } from 'date-fns'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, History } from 'lucide-react'
 import { CATEGORIES } from '@/lib/categories'
 import type { Member, Expense, ExpenseSplit, Payment } from '@/lib/db/schema'
 
@@ -22,6 +22,7 @@ interface Props {
   initialExpenses: Expense[]
   initialSplits: ExpenseSplit[]
   initialPayments: Payment[]
+  initialPaymentSplits: { paymentId: string; expenseSplitId: string }[]
 }
 
 interface DebtItem {
@@ -31,6 +32,7 @@ interface DebtItem {
   category: string
   date: string
   shareAmount: number
+  paidByPaymentId?: string
 }
 
 function getDebtBreakdown(
@@ -38,8 +40,8 @@ function getDebtBreakdown(
   toId: string,
   expenses: Expense[],
   splits: ExpenseSplit[],
+  paidSplitIds: Map<string, string>,
 ): DebtItem[] {
-  // shared expenses paid by `to` where `from` has a split
   return expenses
     .filter(e => e.type === 'shared' && e.paidById === toId)
     .flatMap(e => {
@@ -52,12 +54,13 @@ function getDebtBreakdown(
         category: e.category,
         date: e.date,
         shareAmount: Math.round(parseFloat(String(split.shareAmount)) * 100) / 100,
+        paidByPaymentId: paidSplitIds.get(split.id),
       }]
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 }
 
-export function SettlePage({ tripId, currency, initialMembers, initialExpenses, initialSplits, initialPayments }: Props) {
+export function SettlePage({ tripId, currency, initialMembers, initialExpenses, initialSplits, initialPayments, initialPaymentSplits }: Props) {
   const router = useRouter()
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [selectedDebt, setSelectedDebt] = useState<{ from: string; to: string; amount: number } | null>(null)
@@ -71,16 +74,23 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
     : {}
   const debts = simplifyDebts(balances)
 
+  const paidSplitIds = useMemo(() =>
+    new Map(initialPaymentSplits.map(ps => [ps.expenseSplitId, ps.paymentId])),
+    [initialPaymentSplits]
+  )
+
   const breakdown = useMemo(() => {
     if (!selectedDebt) return []
-    return getDebtBreakdown(selectedDebt.from, selectedDebt.to, initialExpenses, initialSplits)
-  }, [selectedDebt, initialExpenses, initialSplits])
+    return getDebtBreakdown(selectedDebt.from, selectedDebt.to, initialExpenses, initialSplits, paidSplitIds)
+  }, [selectedDebt, initialExpenses, initialSplits, paidSplitIds])
+
+  const unpaidBreakdown = useMemo(() => breakdown.filter(i => !i.paidByPaymentId), [breakdown])
 
   const selectedTotal = useMemo(() =>
-    breakdown
+    unpaidBreakdown
       .filter(item => selectedItems.has(item.splitId))
       .reduce((sum, item) => sum + item.shareAmount, 0),
-    [breakdown, selectedItems]
+    [unpaidBreakdown, selectedItems]
   )
 
   const payAmount = useCustom ? parseFloat(customAmount || '0') : selectedTotal
@@ -92,11 +102,10 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
   function openPayment(debt: { from: string; to: string; amount: number }) {
     setSelectedDebt(debt)
     setPayDate(format(new Date(), 'yyyy-MM-dd'))
-    setUseCustom(false)
-    setCustomAmount('')
-    // pre-select all breakdown items
-    const items = getDebtBreakdown(debt.from, debt.to, initialExpenses, initialSplits)
-    setSelectedItems(new Set(items.map(i => i.splitId)))
+    setUseCustom(true)
+    setCustomAmount(debt.amount.toFixed(2))
+    const items = getDebtBreakdown(debt.from, debt.to, initialExpenses, initialSplits, paidSplitIds)
+    setSelectedItems(new Set(items.filter(i => !i.paidByPaymentId).map(i => i.splitId)))
     setPaymentOpen(true)
   }
 
@@ -110,10 +119,10 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
   }
 
   function toggleAll() {
-    if (selectedItems.size === breakdown.length) {
+    if (selectedItems.size === unpaidBreakdown.length) {
       setSelectedItems(new Set())
     } else {
-      setSelectedItems(new Set(breakdown.map(i => i.splitId)))
+      setSelectedItems(new Set(unpaidBreakdown.map(i => i.splitId)))
     }
     setUseCustom(false)
   }
@@ -125,6 +134,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
       toMemberId: selectedDebt.to,
       amount: payAmount,
       date: payDate,
+      coveredSplitIds: Array.from(selectedItems),
     })
     setPaymentOpen(false)
     router.refresh()
@@ -181,6 +191,59 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
         )}
       </div>
 
+      {initialPayments.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+            <History className="h-5 w-5" />
+            Payment History
+          </h2>
+          <div className="space-y-2">
+            {[...initialPayments]
+              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+              .map(payment => {
+                const coveredSplitIds = initialPaymentSplits
+                  .filter(ps => ps.paymentId === payment.id)
+                  .map(ps => ps.expenseSplitId)
+                const coveredExpenses = coveredSplitIds
+                  .map(splitId => {
+                    const split = initialSplits.find(s => s.id === splitId)
+                    if (!split) return null
+                    return initialExpenses.find(e => e.id === split.expenseId)
+                  })
+                  .filter(Boolean) as Expense[]
+
+                return (
+                  <Card key={payment.id}>
+                    <CardContent className="pt-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <span className="font-medium text-sm">{getMemberName(payment.fromMemberId)}</span>
+                          <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium text-sm">{getMemberName(payment.toMemberId)}</span>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <span className="text-xs text-muted-foreground">{format(new Date(payment.date), 'MMM d, yyyy')}</span>
+                          <Badge variant="secondary">{currency} {parseFloat(String(payment.amount)).toFixed(2)}</Badge>
+                        </div>
+                      </div>
+                      {coveredExpenses.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {coveredExpenses.map(e => (
+                            <Badge key={e.id} variant="outline" className="text-xs font-normal">{e.description}</Badge>
+                          ))}
+                        </div>
+                      )}
+                      {payment.notes && (
+                        <p className="text-xs text-muted-foreground mt-1">{payment.notes}</p>
+                      )}
+                    </CardContent>
+                  </Card>
+                )
+              })}
+          </div>
+        </div>
+      )}
+
       <ResponsiveFormModal open={paymentOpen} onOpenChange={setPaymentOpen} title="Record Payment">
           {selectedDebt && (
             <div className="space-y-4">
@@ -197,7 +260,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                     <input
                       type="checkbox"
                       readOnly
-                      checked={selectedItems.size === breakdown.length}
+                      checked={unpaidBreakdown.length > 0 && selectedItems.size === unpaidBreakdown.length}
                       className="pointer-events-none"
                     />
                     <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">All expenses</span>
@@ -205,16 +268,30 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                   <div className="divide-y max-h-56 overflow-y-auto">
                     {breakdown.map(item => {
                       const cat = CATEGORIES[item.category as keyof typeof CATEGORIES]
+                      const isPaid = !!item.paidByPaymentId
                       const checked = selectedItems.has(item.splitId)
                       return (
                         <div
                           key={item.splitId}
-                          className={`flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-muted/50 transition-colors ${checked ? '' : 'opacity-50'}`}
-                          onClick={() => toggleItem(item.splitId)}
+                          className={`flex items-center gap-3 px-3 py-2 transition-colors ${
+                            isPaid
+                              ? 'opacity-50 cursor-not-allowed bg-muted/30'
+                              : `cursor-pointer hover:bg-muted/50 ${checked ? '' : 'opacity-60'}`
+                          }`}
+                          onClick={() => !isPaid && toggleItem(item.splitId)}
                         >
-                          <input type="checkbox" readOnly checked={checked} className="pointer-events-none shrink-0" />
+                          <input
+                            type="checkbox"
+                            readOnly
+                            checked={isPaid ? false : checked}
+                            disabled={isPaid}
+                            className="pointer-events-none shrink-0"
+                          />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{item.description}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium truncate">{item.description}</p>
+                              {isPaid && <Badge variant="secondary" className="text-xs shrink-0">Paid</Badge>}
+                            </div>
                             <p className="text-xs text-muted-foreground">
                               {format(new Date(item.date), 'MMM d')} · {cat?.label ?? item.category}
                             </p>
