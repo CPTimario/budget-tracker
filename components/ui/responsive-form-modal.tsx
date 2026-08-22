@@ -18,11 +18,19 @@ export function ResponsiveFormModal({ open, onOpenChange, title, children }: Pro
   if (isMobile) {
     return (
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="bottom" className="rounded-t-2xl max-h-[92dvh] overflow-y-auto">
-          <SheetHeader className="pb-2">
+        <SheetContent
+          side="bottom"
+          className="rounded-t-2xl max-h-[92dvh] flex flex-col"
+        >
+          <SheetHeader className="pb-2 shrink-0">
             <SheetTitle>{title}</SheetTitle>
           </SheetHeader>
-          {children}
+          <div
+            className="overflow-y-auto flex-1 px-4"
+            style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 16px)' }}
+          >
+            {children}
+          </div>
         </SheetContent>
       </Sheet>
     )
@@ -30,7 +38,7 @@ export function ResponsiveFormModal({ open, onOpenChange, title, children }: Pro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
