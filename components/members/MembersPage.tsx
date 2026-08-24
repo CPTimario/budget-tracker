@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -52,6 +52,7 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
   const [open, setOpen] = useState(false)
   const [editMember, setEditMember] = useState<Member | null>(null)
   const [pendingDeleteMemberId, setPendingDeleteMemberId] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   const { register, handleSubmit, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm<MemberFormData>({
     resolver: zodResolver(memberSchema),
@@ -93,12 +94,14 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
     router.refresh()
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!pendingDeleteMemberId) return
-    await deleteMember(pendingDeleteMemberId, tripId)
-    setMembers(prev => prev.filter(m => m.id !== pendingDeleteMemberId))
-    setPendingDeleteMemberId(null)
-    router.refresh()
+    startTransition(async () => {
+      await deleteMember(pendingDeleteMemberId, tripId)
+      setMembers(prev => prev.filter(m => m.id !== pendingDeleteMemberId))
+      setPendingDeleteMemberId(null)
+      router.refresh()
+    })
   }
 
   return (
@@ -206,7 +209,9 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
           <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Remove</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+              {isPending ? 'Removing...' : 'Remove'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

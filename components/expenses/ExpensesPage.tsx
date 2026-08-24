@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -61,17 +61,20 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
   const [open, setOpen] = useState(false)
   const [editExpense, setEditExpense] = useState<LocalExpense | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
 
   function getMemberName(id: string) {
     return members.find(m => m.id === id)?.name ?? 'Unknown'
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!pendingDeleteId) return
-    await deleteExpense(pendingDeleteId, tripId)
-    setExpenses(prev => prev.filter(e => e.id !== pendingDeleteId))
-    setPendingDeleteId(null)
-    router.refresh()
+    startTransition(async () => {
+      await deleteExpense(pendingDeleteId, tripId)
+      setExpenses(prev => prev.filter(e => e.id !== pendingDeleteId))
+      setPendingDeleteId(null)
+      router.refresh()
+    })
   }
 
   return (
@@ -163,7 +166,9 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
           <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete} disabled={isPending}>
+              {isPending ? 'Deleting...' : 'Delete'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -8,6 +8,7 @@ import { exportTrip } from '@/server/actions/export'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { User } from '@supabase/supabase-js'
 
 interface Trip { id: string; name: string }
@@ -20,12 +21,15 @@ export default function SettingsPage() {
   const [trips, setTrips] = useState<Trip[]>([])
   const [selectedTripId, setSelectedTripId] = useState<string>('')
   const [exporting, setExporting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setUser(data.user))
-    supabase.from('trips').select('id, name').then(({ data }) => {
-      if (data) setTrips(data as Trip[])
-    })
+    Promise.all([
+      supabase.auth.getUser().then(({ data }) => setUser(data.user)),
+      supabase.from('trips').select('id, name').then(({ data }) => {
+        if (data) setTrips(data as Trip[])
+      }),
+    ]).finally(() => setIsLoading(false))
   }, [])
 
   async function handleSignOut() {
@@ -74,8 +78,12 @@ export default function SettingsPage() {
       <Card>
         <CardHeader><CardTitle>Account</CardTitle></CardHeader>
         <CardContent className="space-y-4">
-          {user?.email && (
-            <p className="text-sm text-muted-foreground">{user.email}</p>
+          {isLoading ? (
+            <Skeleton className="h-4 w-48" />
+          ) : (
+            user?.email && (
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            )
           )}
           <Button variant="destructive" onClick={handleSignOut}>Sign Out</Button>
         </CardContent>
@@ -84,19 +92,23 @@ export default function SettingsPage() {
       <Card>
         <CardHeader><CardTitle>Export Data</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          <Select value={selectedTripId} onValueChange={(v) => setSelectedTripId(v ?? '')}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a trip to export" />
-            </SelectTrigger>
-            <SelectContent>
-              {trips.map((trip) => (
-                <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          {isLoading ? (
+            <Skeleton className="h-9 w-full" />
+          ) : (
+            <Select value={selectedTripId} onValueChange={(v) => setSelectedTripId(v ?? '')}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a trip to export" />
+              </SelectTrigger>
+              <SelectContent>
+                {trips.map((trip) => (
+                  <SelectItem key={trip.id} value={trip.id}>{trip.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           <Button
             onClick={handleExport}
-            disabled={!selectedTripId || exporting}
+            disabled={isLoading || !selectedTripId || exporting}
             variant="outline"
             className="w-full"
           >

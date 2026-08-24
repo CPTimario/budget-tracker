@@ -95,7 +95,14 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
     [unpaidBreakdown, selectedItems]
   )
 
-  const payAmount = useCustom ? parseFloat(customAmount || '0') : selectedTotal
+  // When all items are selected, use the pre-calculated net settlement amount (debt.amount)
+  // rather than the gross sum of splits — the net accounts for reverse debts (e.g. expenses
+  // the debtor paid that the creditor was part of) which the split list doesn't show.
+  const defaultAmount = unpaidBreakdown.length > 0 && selectedItems.size === unpaidBreakdown.length
+    ? (selectedDebt?.amount ?? selectedTotal)
+    : selectedTotal
+
+  const payAmount = useCustom ? parseFloat(customAmount || '0') : defaultAmount
 
   function getMemberName(id: string) {
     return initialMembers.find(m => m.id === id)?.name ?? 'Unknown'
@@ -329,7 +336,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                   id="payAmount"
                   type="number"
                   step="0.01"
-                  value={useCustom ? customAmount : selectedTotal.toFixed(2)}
+                  value={useCustom ? customAmount : defaultAmount.toFixed(2)}
                   readOnly={!useCustom}
                   onChange={e => { setCustomAmount(e.target.value) }}
                   placeholder="Amount"
@@ -348,7 +355,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                     className="text-xs text-primary underline"
                     onClick={() => { setUseCustom(false); setCustomAmount('') }}
                   >
-                    Reset to selected ({formatCurrency(selectedTotal, currency)})
+                    Reset to selected ({formatCurrency(defaultAmount, currency)})
                   </button>
                 ) : null}
               </div>

@@ -24,12 +24,17 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<Message>(null)
+  const [checkingSession, setCheckingSession] = useState(true)
   const supabase = createClient()
   const router = useRouter()
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) router.replace('/trips')
+      if (session) {
+        router.replace('/trips')
+      } else {
+        setCheckingSession(false)
+      }
     })
   }, [])
 
@@ -60,6 +65,14 @@ export default function LoginPage() {
       setMessage({ text: 'Check your email for a sign-in link!', type: 'success' })
     }
     setLoading(false)
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    )
   }
 
   return (
