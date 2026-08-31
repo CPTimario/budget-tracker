@@ -10,11 +10,11 @@ import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Input } from '@/components/ui/input'
 import { computeBalances, simplifyDebts } from '@/lib/settlement'
 import { formatCurrency } from '@/lib/format'
-import { createPayment } from '@/server/actions/payments'
+import { createSettlement } from '@/server/actions/settlements'
 import { format } from 'date-fns'
 import { ArrowRight, History } from 'lucide-react'
 import { CATEGORIES } from '@/lib/categories'
-import type { Member, Expense, ExpenseSplit, Payment } from '@/lib/db/schema'
+import type { Member, Expense, ExpenseSplit, Settlement, Transfer } from '@/lib/db/schema'
 
 interface Props {
   tripId: string
@@ -22,8 +22,9 @@ interface Props {
   initialMembers: Member[]
   initialExpenses: Expense[]
   initialSplits: ExpenseSplit[]
-  initialPayments: Payment[]
-  initialPaymentSplits: { paymentId: string; expenseSplitId: string }[]
+  initialSettlements: Settlement[]
+  initialSettlementItems: { settlementId: string; expenseSplitId: string }[]
+  initialTransfers: Transfer[]
 }
 
 interface DebtItem {
@@ -33,7 +34,7 @@ interface DebtItem {
   category: string
   date: string
   shareAmount: number
-  paidByPaymentId?: string
+  paidBySettlementId?: string
 }
 
 function getDebtBreakdown(
@@ -44,9 +45,9 @@ function getDebtBreakdown(
   paidSplitIds: Map<string, string>,
 ): DebtItem[] {
   return expenses
-    .filter(e => e.type === 'shared' && e.paidById === toId)
-    .flatMap(e => {
-      const split = splits.find(s => s.expenseId === e.id && s.memberId === fromId)
+    .filter((e) => e.type === 'shared' && e.paidById === toId)
+    .flatMap((e) => {
+      const split = splits.find((s) => s.expenseId === e.id && s.memberId === fromId)
       if (!split) return []
       return [{
         splitId: split.id,
@@ -55,13 +56,22 @@ function getDebtBreakdown(
         category: e.category,
         date: e.date,
         shareAmount: Math.round(parseFloat(String(split.shareAmount)) * 100) / 100,
-        paidByPaymentId: paidSplitIds.get(split.id),
+        paidBySettlementId: paidSplitIds.get(split.id),
       }]
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
 }
 
-export function SettlePage({ tripId, currency, initialMembers, initialExpenses, initialSplits, initialPayments, initialPaymentSplits }: Props) {
+export function SettlePage({
+  tripId,
+  currency,
+  initialMembers,
+  initialExpenses,
+  initialSplits,
+  initialSettlements,
+  initialSettlementItems,
+  initialTransfers,
+}: Props) {
   const router = useRouter()
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [selectedDebt, setSelectedDebt] = useState<{ from: string; to: string; amount: number } | null>(null)
@@ -71,14 +81,28 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
   const [payDate, setPayDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [isSubmitting, setIsSubmitting] = useState(false)
 
+  const settlementExpenseMap = useMemo(() => {
+    const map = new Map<string, Expense>()
+    for (const item of initialSettlementItems) {
+      if (!map.has(item.settlementId)) {
+        const split = initialSplits.find((s) => s.id === item.expenseSplitId)
+        if (split) {
+          const expense = initialExpenses.find((e) => e.id === split.expenseId)
+          if (expense) map.set(item.settlementId, expense)
+        }
+      }
+    }
+    return map
+  }, [initialSettlementItems, initialSplits, initialExpenses])
+
   const balances = initialMembers.length
-    ? computeBalances(initialMembers, initialExpenses, initialSplits, initialPayments)
+    ? computeBalances(initialMembers, initialExpenses, initialSplits, initialSettlements, settlementExpenseMap, initialTransfers)
     : {}
   const debts = simplifyDebts(balances)
 
   const paidSplitIds = useMemo(() =>
-    new Map(initialPaymentSplits.map(ps => [ps.expenseSplitId, ps.paymentId])),
-    [initialPaymentSplits]
+    new Map(initialSettlementItems.map((si) => [si.expenseSplitId, si.settlementId])),
+    [initialSettlementItems]
   )
 
   const breakdown = useMemo(() => {
@@ -86,18 +110,17 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
     return getDebtBreakdown(selectedDebt.from, selectedDebt.to, initialExpenses, initialSplits, paidSplitIds)
   }, [selectedDebt, initialExpenses, initialSplits, paidSplitIds])
 
-  const unpaidBreakdown = useMemo(() => breakdown.filter(i => !i.paidByPaymentId), [breakdown])
+  const unpaidBreakdown = useMemo(() => breakdown.filter((i) => !i.paidBySettlementId), [breakdown])
 
   const selectedTotal = useMemo(() =>
     unpaidBreakdown
-      .filter(item => selectedItems.has(item.splitId))
+      .filter((item) => selectedItems.has(item.splitId))
       .reduce((sum, item) => sum + item.shareAmount, 0),
     [unpaidBreakdown, selectedItems]
   )
 
   // When all items are selected, use the pre-calculated net settlement amount (debt.amount)
-  // rather than the gross sum of splits — the net accounts for reverse debts (e.g. expenses
-  // the debtor paid that the creditor was part of) which the split list doesn't show.
+  // rather than the gross sum of splits — the net accounts for reverse debts.
   const defaultAmount = unpaidBreakdown.length > 0 && selectedItems.size === unpaidBreakdown.length
     ? (selectedDebt?.amount ?? selectedTotal)
     : selectedTotal
@@ -105,7 +128,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
   const payAmount = useCustom ? parseFloat(customAmount || '0') : defaultAmount
 
   function getMemberName(id: string) {
-    return initialMembers.find(m => m.id === id)?.name ?? 'Unknown'
+    return initialMembers.find((m) => m.id === id)?.name ?? 'Unknown'
   }
 
   function openPayment(debt: { from: string; to: string; amount: number }) {
@@ -114,12 +137,12 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
     setUseCustom(false)
     setCustomAmount('')
     const items = getDebtBreakdown(debt.from, debt.to, initialExpenses, initialSplits, paidSplitIds)
-    setSelectedItems(new Set(items.filter(i => !i.paidByPaymentId).map(i => i.splitId)))
+    setSelectedItems(new Set(items.filter((i) => !i.paidBySettlementId).map((i) => i.splitId)))
     setPaymentOpen(true)
   }
 
   function toggleItem(splitId: string) {
-    setSelectedItems(prev => {
+    setSelectedItems((prev) => {
       const next = new Set(prev)
       next.has(splitId) ? next.delete(splitId) : next.add(splitId)
       return next
@@ -131,7 +154,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
     if (selectedItems.size === unpaidBreakdown.length) {
       setSelectedItems(new Set())
     } else {
-      setSelectedItems(new Set(unpaidBreakdown.map(i => i.splitId)))
+      setSelectedItems(new Set(unpaidBreakdown.map((i) => i.splitId)))
     }
     setUseCustom(false)
   }
@@ -140,10 +163,11 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
     if (!selectedDebt || payAmount <= 0) return
     setIsSubmitting(true)
     try {
-      await createPayment(tripId, {
+      await createSettlement(tripId, {
         fromMemberId: selectedDebt.from,
         toMemberId: selectedDebt.to,
         amount: payAmount,
+        currency,
         date: payDate,
         coveredSplitIds: Array.from(selectedItems),
       })
@@ -165,7 +189,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
       <div className="mb-6">
         <h2 className="text-lg font-semibold mb-3">Balances</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {initialMembers.map(member => {
+          {initialMembers.map((member) => {
             const balance = balances[member.id] ?? 0
             return (
               <Card key={member.id}>
@@ -207,50 +231,50 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
         )}
       </div>
 
-      {initialPayments.length > 0 && (
+      {initialSettlements.length > 0 && (
         <div className="mt-8">
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <History className="h-5 w-5" />
-            Payment History
+            Settlement History
           </h2>
           <div className="space-y-2">
-            {[...initialPayments]
+            {[...initialSettlements]
               .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-              .map(payment => {
-                const coveredSplitIds = initialPaymentSplits
-                  .filter(ps => ps.paymentId === payment.id)
-                  .map(ps => ps.expenseSplitId)
+              .map((settlement) => {
+                const coveredSplitIds = initialSettlementItems
+                  .filter((si) => si.settlementId === settlement.id)
+                  .map((si) => si.expenseSplitId)
                 const coveredExpenses = coveredSplitIds
-                  .map(splitId => {
-                    const split = initialSplits.find(s => s.id === splitId)
+                  .map((splitId) => {
+                    const split = initialSplits.find((s) => s.id === splitId)
                     if (!split) return null
-                    return initialExpenses.find(e => e.id === split.expenseId)
+                    return initialExpenses.find((e) => e.id === split.expenseId)
                   })
                   .filter(Boolean) as Expense[]
 
                 return (
-                  <Card key={payment.id}>
+                  <Card key={settlement.id}>
                     <CardContent className="pt-4">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <span className="font-medium text-sm">{getMemberName(payment.fromMemberId)}</span>
+                          <span className="font-medium text-sm">{getMemberName(settlement.fromMemberId)}</span>
                           <ArrowRight className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium text-sm">{getMemberName(payment.toMemberId)}</span>
+                          <span className="font-medium text-sm">{getMemberName(settlement.toMemberId)}</span>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          <span className="text-xs text-muted-foreground">{format(new Date(payment.date), 'MMM d, yyyy')}</span>
-                          <Badge variant="secondary">{formatCurrency(parseFloat(String(payment.amount)), currency)}</Badge>
+                          <span className="text-xs text-muted-foreground">{format(new Date(settlement.date), 'MMM d, yyyy')}</span>
+                          <Badge variant="secondary">{formatCurrency(parseFloat(String(settlement.amount)), settlement.currency)}</Badge>
                         </div>
                       </div>
                       {coveredExpenses.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {coveredExpenses.map(e => (
+                          {coveredExpenses.map((e) => (
                             <Badge key={e.id} variant="outline" className="text-xs font-normal">{e.description}</Badge>
                           ))}
                         </div>
                       )}
-                      {payment.notes && (
-                        <p className="text-xs text-muted-foreground mt-1">{payment.notes}</p>
+                      {settlement.notes && (
+                        <p className="text-xs text-muted-foreground mt-1">{settlement.notes}</p>
                       )}
                     </CardContent>
                   </Card>
@@ -260,7 +284,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
         </div>
       )}
 
-      <ResponsiveFormModal open={paymentOpen} onOpenChange={setPaymentOpen} title="Record Payment">
+      <ResponsiveFormModal open={paymentOpen} onOpenChange={setPaymentOpen} title="Record Settlement">
           {selectedDebt && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -285,9 +309,9 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                     <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">All expenses</span>
                   </button>
                   <div className="divide-y max-h-56 overflow-y-auto">
-                    {breakdown.map(item => {
+                    {breakdown.map((item) => {
                       const cat = CATEGORIES[item.category as keyof typeof CATEGORIES]
-                      const isPaid = !!item.paidByPaymentId
+                      const isPaid = !!item.paidBySettlementId
                       const checked = selectedItems.has(item.splitId)
                       return (
                         <button
@@ -338,7 +362,7 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
                   step="0.01"
                   value={useCustom ? customAmount : defaultAmount.toFixed(2)}
                   readOnly={!useCustom}
-                  onChange={e => { setCustomAmount(e.target.value) }}
+                  onChange={(e) => { setCustomAmount(e.target.value) }}
                   placeholder="Amount"
                 />
                 {!useCustom ? (
@@ -361,19 +385,19 @@ export function SettlePage({ tripId, currency, initialMembers, initialExpenses, 
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="payDate" className="text-sm font-medium">Payment date</label>
+                <label htmlFor="payDate" className="text-sm font-medium">Settlement date</label>
                 <Input
                   id="payDate"
                   type="date"
                   value={payDate}
-                  onChange={e => setPayDate(e.target.value)}
+                  onChange={(e) => setPayDate(e.target.value)}
                 />
               </div>
 
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setPaymentOpen(false)}>Cancel</Button>
                 <Button onClick={handlePayment} disabled={payAmount <= 0 || isSubmitting}>
-                  {isSubmitting ? 'Recording...' : 'Record Payment'}
+                  {isSubmitting ? 'Recording...' : 'Record Settlement'}
                 </Button>
               </div>
             </div>

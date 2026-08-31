@@ -9,8 +9,8 @@ import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
-import { Receipt, Users, ArrowLeftRight, DollarSign, TrendingDown, TrendingUp } from 'lucide-react'
-import type { Trip, Member, Expense, ExpenseSplit, Payment } from '@/lib/db/schema'
+import { Receipt, Users, Wallet, DollarSign, TrendingDown, TrendingUp } from 'lucide-react'
+import type { Trip, Member, Expense, ExpenseSplit, Settlement, Transfer } from '@/lib/db/schema'
 import { computeBalances } from '@/lib/settlement'
 import { formatCurrency } from '@/lib/format'
 
@@ -19,10 +19,12 @@ interface Props {
   members: Member[]
   expenses: Expense[]
   expenseSplits: ExpenseSplit[]
-  payments: Payment[]
+  settlements: Settlement[]
+  transfers: Transfer[]
 }
 
-export function TripDashboard({ trip, members, expenses, expenseSplits, payments }: Props) {
+export function TripDashboard({ trip, members: rawMembers, expenses, expenseSplits, settlements, transfers }: Props) {
+  const members = useMemo(() => [...rawMembers].sort((a, b) => (b.isSelf ? 1 : 0) - (a.isSelf ? 1 : 0)), [rawMembers])
   const totalBudget = useMemo(() => members.reduce((sum, m) => sum + parseFloat(m.initialBudget || '0'), 0), [members])
   const totalSpent = useMemo(() => expenses.reduce((sum, e) => sum + parseFloat(e.amount), 0), [expenses])
   const remaining = totalBudget - totalSpent
@@ -69,7 +71,7 @@ export function TripDashboard({ trip, members, expenses, expenseSplits, payments
     [...expenses].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5)
   , [expenses])
 
-  const balances = useMemo(() => computeBalances(members, expenses, expenseSplits, payments), [members, expenses, expenseSplits, payments])
+  const balances = useMemo(() => computeBalances(members, expenses, expenseSplits, settlements, new Map(), transfers), [members, expenses, expenseSplits, settlements, transfers])
 
   const memberSummaries = useMemo(() =>
     members.map(m => {
@@ -216,7 +218,7 @@ export function TripDashboard({ trip, members, expenses, expenseSplits, payments
           <div className="hidden md:flex gap-3 flex-wrap">
             <Link href={`/trips/${trip.id}/expenses`}><Button variant="outline" size="sm"><Receipt className="h-4 w-4 mr-2" />Expenses</Button></Link>
             <Link href={`/trips/${trip.id}/members`}><Button variant="outline" size="sm"><Users className="h-4 w-4 mr-2" />Members</Button></Link>
-            <Link href={`/trips/${trip.id}/settle`}><Button variant="outline" size="sm"><ArrowLeftRight className="h-4 w-4 mr-2" />Settle</Button></Link>
+            <Link href={`/trips/${trip.id}/wallet`}><Button variant="outline" size="sm"><Wallet className="h-4 w-4 mr-2" />Wallet</Button></Link>
           </div>
 
           <Tabs defaultValue="category">

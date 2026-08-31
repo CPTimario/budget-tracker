@@ -48,7 +48,9 @@ function toMember(m: DBMember): Member {
 
 export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: { tripId: string; initialMembers?: DBMember[]; currency?: string }) {
   const router = useRouter()
-  const [members, setMembers] = useState<Member[]>(initialMembers.map(toMember))
+  const [members, setMembers] = useState<Member[]>(
+    [...initialMembers].sort((a, b) => (b.isSelf ? 1 : 0) - (a.isSelf ? 1 : 0)).map(toMember)
+  )
   const [open, setOpen] = useState(false)
   const [editMember, setEditMember] = useState<Member | null>(null)
   const [pendingDeleteMemberId, setPendingDeleteMemberId] = useState<string | null>(null)

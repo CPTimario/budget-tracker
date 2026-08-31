@@ -1,31 +1,44 @@
-import type { Member, Expense, ExpenseSplit, Payment } from '@/lib/db/schema'
+import type { Member, Expense, ExpenseSplit, Settlement, Transfer } from '@/lib/db/schema'
 
 export function computeBalances(
   members: Member[],
   expenses: Expense[],
   expenseSplits: ExpenseSplit[],
-  payments: Payment[]
+  settlements: Settlement[],
+  settlementExpenseMap: Map<string, Expense>,
+  transfers: Transfer[]
 ): Record<string, number> {
   const balances: Record<string, number> = {}
   members.forEach((m) => { balances[m.id] = 0 })
 
   for (const expense of expenses) {
-    const amount = parseFloat(String(expense.amount))
-    if (expense.type === 'personal') {
-      balances[expense.paidById] = (balances[expense.paidById] || 0) - amount
-    } else {
-      const splits = expenseSplits.filter((s) => s.expenseId === expense.id)
-      balances[expense.paidById] = (balances[expense.paidById] || 0) + amount
-      for (const split of splits) {
-        balances[split.memberId] = (balances[split.memberId] || 0) - parseFloat(String(split.shareAmount))
-      }
+    if (expense.type !== 'shared') continue
+    const rawAmount = parseFloat(String(expense.amount))
+    const rate = expense.exchangeRate ? parseFloat(String(expense.exchangeRate)) : 1
+    const amount = expense.currency ? rawAmount * rate : rawAmount
+    balances[expense.paidById] = (balances[expense.paidById] || 0) + amount
+    for (const split of expenseSplits.filter((s) => s.expenseId === expense.id)) {
+      const splitAmount = parseFloat(String(split.shareAmount))
+      const converted = expense.currency ? splitAmount * rate : splitAmount
+      balances[split.memberId] = (balances[split.memberId] || 0) - converted
     }
   }
 
-  for (const payment of payments) {
-    const amount = parseFloat(String(payment.amount))
-    balances[payment.fromMemberId] = (balances[payment.fromMemberId] || 0) + amount
-    balances[payment.toMemberId] = (balances[payment.toMemberId] || 0) - amount
+  for (const settlement of settlements) {
+    const expense = settlementExpenseMap.get(settlement.id)
+    const rate = expense?.exchangeRate ? parseFloat(String(expense.exchangeRate)) : 1
+    const amount = parseFloat(String(settlement.amount))
+    const converted = expense?.currency ? amount * rate : amount
+    balances[settlement.fromMemberId] = (balances[settlement.fromMemberId] || 0) + converted
+    balances[settlement.toMemberId] = (balances[settlement.toMemberId] || 0) - converted
+  }
+
+  for (const transfer of transfers) {
+    const rate = transfer.exchangeRateToTrip ? parseFloat(String(transfer.exchangeRateToTrip)) : 1
+    const amount = parseFloat(String(transfer.amount))
+    const converted = amount * rate
+    balances[transfer.fromMemberId] = (balances[transfer.fromMemberId] || 0) + converted
+    balances[transfer.toMemberId] = (balances[transfer.toMemberId] || 0) - converted
   }
 
   return balances

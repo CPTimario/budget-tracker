@@ -14,7 +14,7 @@ export function BottomNav() {
         { href: `/trips/${tripId}`, label: 'Dashboard', icon: MapPin },
         { href: `/trips/${tripId}/expenses`, label: 'Expenses', icon: Receipt },
         { href: `/trips/${tripId}/members`, label: 'Members', icon: Users },
-        { href: `/trips/${tripId}/settle`, label: 'Settle', icon: ArrowLeftRight },
+        { href: `/trips/${tripId}/settle`, label: 'Settle Up', icon: ArrowLeftRight },
       ]
     : [
         { href: '/trips', label: 'Trips', icon: MapPin },

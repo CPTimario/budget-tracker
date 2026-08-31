@@ -3,9 +3,9 @@
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { members, trips } from '@/lib/db/schema'
+import { members, trips, memberBalances } from '@/lib/db/schema'
 import { createClient } from '@/lib/supabase/server'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, sql } from 'drizzle-orm'
 
 const memberSchema = z.object({
   name: z.string().min(1),
@@ -27,10 +27,19 @@ export async function createMember(tripId: string, data: z.infer<typeof memberSc
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  await verifyTripOwnership(tripId, user.id)
+  const trip = await verifyTripOwnership(tripId, user.id)
   const parsed = memberSchema.parse(data)
 
-  await db.insert(members).values({ tripId, ...parsed, initialBudget: String(parsed.initialBudget) })
+  await db.transaction(async (tx) => {
+    const [member] = await tx.insert(members).values({ tripId, ...parsed, initialBudget: String(parsed.initialBudget) }).returning()
+    if (parsed.initialBudget > 0) {
+      await tx.insert(memberBalances).values({ memberId: member.id, currency: trip.currency, balance: String(parsed.initialBudget) })
+        .onConflictDoUpdate({
+          target: [memberBalances.memberId, memberBalances.currency],
+          set: { balance: sql`${memberBalances.balance} + excluded.balance` },
+        })
+    }
+  })
   revalidatePath(`/trips/${tripId}/members`)
 }
 
@@ -39,13 +48,28 @@ export async function updateMember(id: string, tripId: string, data: Partial<z.i
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
-  await verifyTripOwnership(tripId, user.id)
+  const trip = await verifyTripOwnership(tripId, user.id)
   const { initialBudget, ...rest } = data
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  await db.update(members).set({
-    ...rest,
-    ...(initialBudget !== undefined ? { initialBudget: String(initialBudget) } : {}),
-  } as any).where(eq(members.id, id))
+
+  await db.transaction(async (tx) => {
+    if (initialBudget !== undefined) {
+      const [old] = await tx.select().from(members).where(eq(members.id, id))
+      const oldBudget = parseFloat(String(old?.initialBudget ?? '0'))
+      const diff = initialBudget - oldBudget
+      if (diff !== 0) {
+        await tx.insert(memberBalances).values({ memberId: id, currency: trip.currency, balance: String(diff) })
+          .onConflictDoUpdate({
+            target: [memberBalances.memberId, memberBalances.currency],
+            set: { balance: sql`${memberBalances.balance} + excluded.balance` },
+          })
+      }
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await tx.update(members).set({
+      ...rest,
+      ...(initialBudget !== undefined ? { initialBudget: String(initialBudget) } : {}),
+    } as any).where(eq(members.id, id))
+  })
   revalidatePath(`/trips/${tripId}/members`)
 }
 
