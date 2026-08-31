@@ -1,1 +1,0 @@
-ALTER TABLE "trips" ADD COLUMN "budget" numeric DEFAULT '0' NOT NULL;

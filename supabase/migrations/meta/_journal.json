@@ -6,35 +6,7 @@
       "idx": 0,
       "version": "7",
       "when": 1787369159244,
-      "tag": "0000_volatile_photon",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1787371931134,
-      "tag": "0001_concerned_maximus",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1787372921307,
-      "tag": "0002_remarkable_shadow_king",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1787373244890,
-      "tag": "0003_workable_champions",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1787376619740,
-      "tag": "0004_cloudy_whistler",
+      "tag": "0000_initial_schema",
       "breakpoints": true
     }
   ]
