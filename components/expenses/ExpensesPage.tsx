@@ -8,6 +8,7 @@ import { ResponsiveFormModal } from '@/components/ui/responsive-form-modal'
 import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from '@/components/ui/alert-dialog'
 import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Plus, Trash2, Pencil, Receipt } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
 import { deleteExpense } from '@/server/actions/expenses'
 import { CATEGORIES } from '@/lib/categories'
 import { formatCurrency } from '@/lib/format'
@@ -77,6 +78,15 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
     })
   }
 
+  const grouped = Object.entries(
+    expenses.reduce<Record<string, typeof expenses>>((groups, expense) => {
+      const key = expense.date
+      groups[key] = groups[key] ?? []
+      groups[key].push(expense)
+      return groups
+    }, {})
+  ).sort(([a], [b]) => b.localeCompare(a))
+
   return (
     <>
       <MobilePageHeader
@@ -91,51 +101,94 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
 
       <div className="p-4 md:p-6">
         <div className="hidden md:flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Expenses</h1>
-          <Button onClick={() => { setEditExpense(null); setOpen(true) }}>
-            <Plus className="h-4 w-4 mr-2" /> Add Expense
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">Expenses</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{expenses.length} {expenses.length === 1 ? 'expense' : 'expenses'}</p>
+          </div>
+          <Button onClick={() => { setEditExpense(null); setOpen(true) }} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Expense
           </Button>
         </div>
 
         {expenses.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <Receipt className="h-12 w-12 mx-auto mb-3 opacity-40" />
-            <p className="mb-2">No expenses yet.</p>
-            <Button onClick={() => { setEditExpense(null); setOpen(true) }}>Add Expense</Button>
-          </div>
+          <EmptyState
+            icon={Receipt}
+            heading="No expenses yet"
+            body="Log your first expense to start tracking"
+            action={{ label: 'Add Expense', onClick: () => { setEditExpense(null); setOpen(true) } }}
+          />
         ) : (
-          <div className="space-y-2">
-            {expenses.map((expense) => {
-              const cat = CATEGORIES[expense.category as keyof typeof CATEGORIES]
-              const Icon = cat?.icon
+          <div className="space-y-5">
+            {grouped.map(([date, group]) => {
+              const dayTotal = group.reduce((sum, e) => sum + parseFloat(e.amount), 0)
               return (
-                <div key={expense.id} className="flex items-start gap-3 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors">
-                  <div className="h-9 w-9 rounded-full flex items-center justify-center shrink-0 mt-0.5" style={{ backgroundColor: cat?.color + '20' }}>
-                    {Icon && <Icon className="h-4 w-4" style={{ color: cat?.color }} />}
+                <div key={date}>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      {format(new Date(date), 'EEEE, MMM d')}
+                    </p>
+                    <p className="text-xs font-semibold text-muted-foreground tabular-nums">
+                      {formatCurrency(dayTotal, currency)}
+                    </p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium truncate">{expense.description}</p>
-                      <span className="font-semibold tabular-nums shrink-0">
-                        {formatCurrency(parseFloat(expense.amount), currency)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(expense.date), 'MMM d')} · {getMemberName(expense.paid_by_id)}
-                      </p>
-                      <Badge variant={expense.type === 'shared' ? 'secondary' : 'outline'} className="text-xs">
-                        {expense.type}
-                      </Badge>
-                      <div className="ml-auto flex items-center gap-1">
-                        <Button variant="ghost" size="icon-xl" aria-label="Edit expense" onClick={() => { setEditExpense(expense); setOpen(true) }}>
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon-xl" aria-label="Delete expense" onClick={() => setPendingDeleteId(expense.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="space-y-1.5">
+                    {group.map((expense) => {
+                      const cat = CATEGORIES[expense.category as keyof typeof CATEGORIES]
+                      const Icon = cat?.icon
+                      return (
+                        <div
+                          key={expense.id}
+                          className="flex items-center gap-3 p-3 rounded-xl border border-border bg-card hover:bg-muted/40 transition-colors"
+                        >
+                          <div
+                            className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                            style={{ backgroundColor: cat?.color + '18' }}
+                          >
+                            {Icon && <Icon className="h-4 w-4" style={{ color: cat?.color }} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <p className="font-semibold text-sm truncate">{expense.description}</p>
+                              <span className="font-bold text-sm tabular-nums shrink-0">
+                                {formatCurrency(parseFloat(expense.amount), currency)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-xs text-muted-foreground truncate">
+                                {getMemberName(expense.paid_by_id)}
+                              </p>
+                              <Badge
+                                variant={expense.type === 'shared' ? 'secondary' : 'outline'}
+                                className="text-[10px] px-1.5 py-0 h-4 shrink-0"
+                              >
+                                {expense.type}
+                              </Badge>
+                              <div className="ml-auto flex items-center gap-0.5">
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xl"
+                                  aria-label="Edit expense"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  onClick={() => { setEditExpense(expense); setOpen(true) }}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon-xl"
+                                  aria-label="Delete expense"
+                                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                  onClick={() => setPendingDeleteId(expense.id)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )

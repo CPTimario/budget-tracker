@@ -12,10 +12,12 @@ npm run build    # production build
 npm run lint     # ESLint
 ```
 
-Database migrations (Drizzle + Supabase):
+Database (Drizzle + Supabase):
 ```bash
-npx drizzle-kit generate   # generate migration from schema changes
-npx drizzle-kit migrate    # apply migrations to DB
+npm run db:push      # push schema changes directly (dev)
+npm run db:generate  # generate migration files
+npm run db:migrate   # apply migrations to DB
+npm run db:studio    # open Drizzle Studio
 ```
 
 No test runner is configured. `@playwright/test` is installed as a devDependency but no test files exist yet.
@@ -30,7 +32,7 @@ Requires `.env.local` with:
 
 **Stack:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, Drizzle ORM, Supabase Auth, TanStack Query, shadcn/ui components, Zod, React Hook Form, Recharts, PWA via `@ducanh2912/next-pwa`.
 
-**Data layer:** Drizzle ORM talks directly to Postgres (`lib/db/index.ts`). Schema is in `lib/db/schema.ts` (tables: `trips`, `members`, `expenses`, `expense_splits`, `payments`). Migrations live in `supabase/migrations/`. Server actions in `server/actions/` handle all mutations — they authenticate via Supabase server client, verify trip ownership, then call `db` directly.
+**Data layer:** Drizzle ORM talks directly to Postgres (`lib/db/index.ts`). Schema is in `lib/db/schema.ts` (tables: `trips`, `members`, `expenses`, `expense_splits`, `settlements`, `settlement_items`, `transfers`, `member_balances`). Migrations live in `supabase/migrations/`. Server actions in `server/actions/` handle all mutations — they authenticate via Supabase server client, verify trip ownership, then call `db` directly. `member_balances` is a materialized per-member/per-currency balance updated atomically on every mutation.
 
 **Auth:** Supabase Auth with SSR helpers. `lib/supabase/server.ts` creates a server-side client; `lib/supabase/client.ts` creates a browser client. The `(auth)` route group holds the login page; `(shell)` holds authenticated pages. Auth callback lives at `app/auth/callback/`.
 
@@ -40,7 +42,7 @@ Requires `.env.local` with:
 
 **Page data flow:** Server components fetch data directly via `db` and pass it as props to client components. Mutations go through `'use server'` actions which call `revalidatePath` to bust the cache. TanStack Query is available on the client (configured in `components/providers.tsx`) but most data fetching currently happens server-side.
 
-**Settlement logic:** `lib/settlement.ts` exports `computeBalances` and `simplifyDebts` — pure functions that calculate who owes whom given expenses, splits, and payments.
+**Settlement logic:** `lib/settlement.ts` exports `computeBalances` and `simplifyDebts` — pure functions that calculate who owes whom given expenses, splits, and settlements. `settlements` record debt payoffs between members (with optional `settlement_items` linking to specific expense splits); `transfers` record direct fund movements (e.g. sending money before a trip). Both affect `member_balances`.
 
 **UI components:** `components/ui/` contains shadcn/ui primitives. Feature components are organized by domain: `components/trips/`, `components/expenses/`, `components/members/`, `components/settlement/`, `components/dashboard/`, `components/shell/`.
 

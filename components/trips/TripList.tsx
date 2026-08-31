@@ -14,18 +14,27 @@ export function TripList({ trips, memberCounts = {} }: { trips: Trip[]; memberCo
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">My Trips</h1>
-        <Button onClick={() => setOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" /> New Trip
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">My Trips</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">{trips.length} {trips.length === 1 ? 'trip' : 'trips'}</p>
+        </div>
+        <Button onClick={() => setOpen(true)} className="gap-2">
+          <Plus className="h-4 w-4" />
+          New Trip
         </Button>
       </div>
 
       {trips.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <MapPin className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="text-lg mb-2">No trips yet</p>
-          <p className="text-sm mb-4">Create your first trip to start tracking expenses</p>
-          <Button onClick={() => setOpen(true)}>Create Trip</Button>
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+            <MapPin className="h-8 w-8 text-primary" />
+          </div>
+          <h3 className="text-lg font-semibold mb-1">No trips yet</h3>
+          <p className="text-sm text-muted-foreground mb-6 max-w-xs">Create your first trip to start tracking group expenses together.</p>
+          <Button onClick={() => setOpen(true)} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Create Trip
+          </Button>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

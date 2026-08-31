@@ -47,11 +47,11 @@ export function TripForm({ onCancel }: { onCancel?: () => void }) {
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label htmlFor="startDate" className="text-xs text-muted-foreground mb-1 block">Start Date</label>
+          <label htmlFor="startDate" className="text-sm font-medium mb-1 block">Start Date</label>
           <Input id="startDate" type="date" {...register('startDate')} />
         </div>
         <div>
-          <label htmlFor="endDate" className="text-xs text-muted-foreground mb-1 block">End Date</label>
+          <label htmlFor="endDate" className="text-sm font-medium mb-1 block">End Date</label>
           <Input id="endDate" type="date" {...register('endDate')} />
           {errors.endDate && <p className="text-xs text-destructive mt-1">{errors.endDate.message}</p>}
         </div>

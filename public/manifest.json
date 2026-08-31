@@ -1,11 +1,11 @@
 {
-  "name": "Budget Tracker",
-  "short_name": "Budget",
-  "description": "Track your mission trip expenses",
+  "name": "Masa",
+  "short_name": "Masa",
+  "description": "Track your group trip expenses",
   "start_url": "/trips",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#6366f1",
+  "background_color": "#faf9f7",
+  "theme_color": "#c4832b",
   "icons": [
     {
       "src": "/icon.svg",

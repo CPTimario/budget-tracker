@@ -70,12 +70,12 @@ interface Props {
 }
 
 const TX_ICONS = {
-  expense_paid:        { icon: Receipt,       color: 'text-destructive',   bg: 'bg-destructive/5' },
-  expense_split:       { icon: Receipt,       color: 'text-destructive',   bg: 'bg-destructive/5' },
-  settlement_sent:     { icon: CreditCard,    color: 'text-destructive',   bg: 'bg-destructive/5' },
-  settlement_received: { icon: CheckCircle,   color: 'text-emerald-500',   bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-  transfer_sent:       { icon: ArrowUpRight,  color: 'text-destructive',   bg: 'bg-destructive/5' },
-  transfer_received:   { icon: ArrowDownLeft, color: 'text-emerald-500',   bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
+  expense_paid:        { icon: Receipt,       color: 'text-destructive', bg: 'bg-destructive/5' },
+  expense_split:       { icon: Receipt,       color: 'text-destructive', bg: 'bg-destructive/5' },
+  settlement_sent:     { icon: CreditCard,    color: 'text-destructive', bg: 'bg-destructive/5' },
+  settlement_received: { icon: CheckCircle,   color: 'text-success',     bg: 'bg-success/10' },
+  transfer_sent:       { icon: ArrowUpRight,  color: 'text-destructive', bg: 'bg-destructive/5' },
+  transfer_received:   { icon: ArrowDownLeft, color: 'text-success',     bg: 'bg-success/10' },
 }
 
 export function MemberDetail({ trip, member, allMembers, expenses, expenseSplits, settlements, settlementItems, transfers, balances, memberDebts }: Props) {
@@ -269,7 +269,7 @@ export function MemberDetail({ trip, member, allMembers, expenses, expenseSplits
                   {activeBalance && (() => {
                     const amt = parseFloat(activeBalance.balance)
                     return (
-                      <p className={`text-sm md:text-lg font-bold truncate ${amt >= 0 ? 'text-emerald-600' : 'text-destructive'}`}>
+                      <p className={`text-sm md:text-lg font-bold truncate ${amt >= 0 ? 'text-success' : 'text-destructive'}`}>
                         {formatCurrency(amt, activeBalance.currency)}
                       </p>
                     )
@@ -299,7 +299,7 @@ export function MemberDetail({ trip, member, allMembers, expenses, expenseSplits
               </CardHeader>
               <CardContent className="px-3 pb-3">
                 {totalOwedToMe > 0
-                  ? <p className="text-sm md:text-lg font-bold text-emerald-600 truncate">{formatCurrency(totalOwedToMe, trip.currency)}</p>
+                  ? <p className="text-sm md:text-lg font-bold text-success truncate">{formatCurrency(totalOwedToMe, trip.currency)}</p>
                   : <p className="text-sm font-bold text-muted-foreground">—</p>
                 }
               </CardContent>
@@ -444,7 +444,7 @@ export function MemberDetail({ trip, member, allMembers, expenses, expenseSplits
                           <div key={i} className="flex items-center justify-between gap-3 py-1">
                             <div className="min-w-0">
                               <p className="text-sm font-medium truncate">{counterpart?.name ?? debt.from}</p>
-                              <p className="text-sm font-bold text-emerald-600">{formatCurrency(debt.amount, trip.currency)}</p>
+                              <p className="text-sm font-bold text-success">{formatCurrency(debt.amount, trip.currency)}</p>
                             </div>
                             <Button size="sm" variant="outline" className="shrink-0" onClick={() => openSettleModal(debt)}>
                               Mark received
@@ -556,7 +556,7 @@ export function MemberDetail({ trip, member, allMembers, expenses, expenseSplits
               )}
 
               <div className="space-y-1">
-                <label htmlFor="settle-amount" className="text-xs text-muted-foreground">Amount</label>
+                <label htmlFor="settle-amount" className="text-sm font-medium">Amount</label>
                 <Input
                   id="settle-amount"
                   type="number"

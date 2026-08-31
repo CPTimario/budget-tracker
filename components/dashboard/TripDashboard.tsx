@@ -10,6 +10,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Receipt, Users, Wallet, DollarSign, TrendingDown, TrendingUp } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { SectionHeader } from '@/components/ui/section-header'
 import type { Trip, Member, Expense, ExpenseSplit, Settlement, Transfer } from '@/lib/db/schema'
 import { computeBalances } from '@/lib/settlement'
 import { formatCurrency } from '@/lib/format'
@@ -92,229 +94,256 @@ export function TripDashboard({ trip, members: rawMembers, expenses, expenseSpli
   const budgetPct = totalBudget > 0 ? Math.min(100, (totalSpent / totalBudget) * 100) : 0
   const isEmpty = members.length === 0 && expenses.length === 0
 
+  const statCards = [
+    {
+      label: 'Total Budget',
+      value: formatCurrency(totalBudget, trip.currency),
+      icon: DollarSign,
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+    },
+    {
+      label: 'Total Spent',
+      value: formatCurrency(totalSpent, trip.currency),
+      icon: TrendingDown,
+      iconBg: 'bg-destructive/10',
+      iconColor: 'text-destructive',
+    },
+    {
+      label: 'Remaining',
+      value: formatCurrency(remaining, trip.currency),
+      icon: remaining >= 0 ? TrendingUp : TrendingDown,
+      iconBg: remaining >= 0 ? 'bg-success/10' : 'bg-destructive/10',
+      iconColor: remaining >= 0 ? 'text-success' : 'text-destructive',
+      valueColor: remaining >= 0 ? 'text-success' : 'text-destructive',
+    },
+    {
+      label: 'Expenses',
+      value: String(expenses.length),
+      icon: Receipt,
+      iconBg: 'bg-primary/10',
+      iconColor: 'text-primary',
+    },
+  ]
+
   return (
     <>
       <MobilePageHeader title={trip.name} backHref="/trips" />
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      <div>
-        <h1 className="hidden md:block text-2xl font-bold">{trip.name}</h1>
-        <p className="text-muted-foreground">{trip.destination}</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm text-muted-foreground">Total Budget</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent><p className="text-xl md:text-2xl font-bold">{formatCurrency(totalBudget, trip.currency)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm text-muted-foreground">Total Spent</CardTitle>
-              <TrendingDown className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent><p className="text-xl md:text-2xl font-bold">{formatCurrency(totalSpent, trip.currency)}</p></CardContent>
-        </Card>
-        <Card className={remaining >= 0 ? 'ring-1 ring-primary/30 bg-primary/5' : 'ring-1 ring-destructive/30 bg-destructive/5'}>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm text-muted-foreground">Remaining</CardTitle>
-              {remaining >= 0 ? <TrendingUp className="h-4 w-4 text-muted-foreground" /> : <TrendingDown className="h-4 w-4 text-muted-foreground" />}
-            </div>
-          </CardHeader>
-          <CardContent><p className={`text-xl md:text-2xl font-bold ${remaining >= 0 ? 'text-primary' : 'text-destructive'}`}>{formatCurrency(remaining, trip.currency)}</p></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm text-muted-foreground">Expenses</CardTitle>
-              <Receipt className="h-4 w-4 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent><p className="text-xl md:text-2xl font-bold">{expenses.length}</p></CardContent>
-        </Card>
-      </div>
-
-      {totalBudget > 0 && (
-        <div className="space-y-1.5">
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <span>Budget used</span>
-            <span>{Math.round(budgetPct)}%</span>
-          </div>
-          <div className="h-2 bg-muted rounded-full overflow-hidden">
-            <div
-              role="progressbar"
-              aria-valuenow={Math.round(budgetPct)}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label="Budget used"
-              className="h-full rounded-full transition-all bg-primary"
-              style={{ width: `${budgetPct}%` }}
-            />
-          </div>
+      <div className="p-4 md:p-6 space-y-5 md:space-y-6">
+        <div>
+          <h1 className="hidden md:block text-2xl font-bold tracking-tight">{trip.name}</h1>
+          <p className="text-muted-foreground text-sm">{trip.destination}</p>
         </div>
-      )}
 
-      {isEmpty ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <Users className="h-12 w-12 mx-auto mb-3 opacity-40" />
-          <p className="mb-1 font-medium">No members yet</p>
-          <p className="text-sm mb-4">Start by adding your trip members</p>
-          <Link href={`/trips/${trip.id}/members`}><Button>Add Members</Button></Link>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {statCards.map((card) => {
+            const Icon = card.icon
+            return (
+              <Card key={card.label} className="border-border">
+                <CardContent className="pt-4 pb-3 px-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-muted-foreground font-medium">{card.label}</span>
+                    <div className={`h-7 w-7 rounded-lg flex items-center justify-center ${card.iconBg}`}>
+                      <Icon className={`h-3.5 w-3.5 ${card.iconColor}`} />
+                    </div>
+                  </div>
+                  <p className={`text-xl font-bold tabular-nums ${card.valueColor ?? ''}`}>{card.value}</p>
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
-      ) : (
-        <>
-          {memberSummaries.length > 0 && (
-            <div className="space-y-3">
-              <h2 className="text-base font-semibold">Members</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {memberSummaries.map(({ member, consumed, balance }) => (
-                  <Link key={member.id} href={`/trips/${trip.id}/members/${member.id}`}>
-                    <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                      <CardContent className="pt-4 pb-3 px-4">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0"
-                            style={{ backgroundColor: member.color }}
-                          >
-                            {member.name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{member.name}</p>
-                            {member.isSelf && (
-                              <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">You</span>
+
+        {totalBudget > 0 && (
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Budget used</span>
+              <span className={budgetPct >= 90 ? 'text-destructive font-semibold' : ''}>{Math.round(budgetPct)}%</span>
+            </div>
+            <div className="h-2 bg-muted rounded-full overflow-hidden">
+              <div
+                role="progressbar"
+                aria-valuenow={Math.round(budgetPct)}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-label="Budget used"
+                className={`h-full rounded-full transition-all ${budgetPct >= 90 ? 'bg-destructive' : 'bg-primary'}`}
+                style={{ width: `${budgetPct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {isEmpty ? (
+          <EmptyState
+            icon={Users}
+            heading="No members yet"
+            body="Start by adding your trip members"
+            action={{ label: 'Add Members', onClick: () => window.location.href = `/trips/${trip.id}/members` }}
+          />
+        ) : (
+          <>
+            {memberSummaries.length > 0 && (
+              <div className="space-y-3">
+                <SectionHeader title="Members" />
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {memberSummaries.map(({ member, consumed, balance: rawBalance }) => {
+                    const balance = Math.round(rawBalance * 100) / 100
+                    const budget = parseFloat(member.initialBudget || '0')
+                    const consumedPct = budget > 0 ? Math.min(100, (consumed / budget) * 100) : 0
+                    return (
+                      <Link key={member.id} href={`/trips/${trip.id}/members/${member.id}`}>
+                        <Card className="hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer border-border">
+                          <CardContent className="pt-4 pb-3 px-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div
+                                className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ring-2 ring-white dark:ring-card"
+                                style={{ backgroundColor: member.color }}
+                              >
+                                {member.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="font-semibold text-sm truncate">{member.name}</p>
+                                  {member.isSelf && (
+                                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium shrink-0">You</span>
+                                  )}
+                                </div>
+                                <span className={`text-xs font-semibold ${balance > 0 ? 'text-success' : balance < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                  {balance > 0 ? `+${formatCurrency(balance, trip.currency)}` : balance < 0 ? `-${formatCurrency(Math.abs(balance), trip.currency)}` : 'Settled'}
+                                </span>
+                              </div>
+                            </div>
+                            {budget > 0 && (
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-[11px] text-muted-foreground">
+                                  <span>{formatCurrency(consumed, trip.currency)} spent</span>
+                                  <span>{formatCurrency(budget, trip.currency)} budget</span>
+                                </div>
+                                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all ${consumedPct >= 90 ? 'bg-destructive' : 'bg-primary'}`}
+                                    style={{ width: `${consumedPct}%` }}
+                                  />
+                                </div>
+                              </div>
                             )}
-                          </div>
-                        </div>
-                        <div className="space-y-1 text-xs text-muted-foreground">
-                          <div className="flex justify-between">
-                            <span>Budget</span>
-                            <span className="font-medium text-foreground">{formatCurrency(parseFloat(member.initialBudget || '0'), trip.currency)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Consumed</span>
-                            <span className="font-medium text-foreground">{formatCurrency(consumed, trip.currency)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Net balance</span>
-                            <span className={`font-semibold ${balance > 0 ? 'text-emerald-600' : balance < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
-                              {balance > 0 ? `Owed ${formatCurrency(balance, trip.currency)}` : balance < 0 ? `Owes ${formatCurrency(Math.abs(balance), trip.currency)}` : 'Settled'}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                ))}
+                          </CardContent>
+                        </Card>
+                      </Link>
+                    )
+                  })}
+                </div>
               </div>
+            )}
+
+            <div className="hidden md:flex gap-2 flex-wrap">
+              <Link href={`/trips/${trip.id}/expenses`}>
+                <Button variant="outline" size="sm" className="gap-2"><Receipt className="h-4 w-4" />Expenses</Button>
+              </Link>
+              <Link href={`/trips/${trip.id}/members`}>
+                <Button variant="outline" size="sm" className="gap-2"><Users className="h-4 w-4" />Members</Button>
+              </Link>
+              <Link href={`/trips/${trip.id}/wallet`}>
+                <Button variant="outline" size="sm" className="gap-2"><Wallet className="h-4 w-4" />Wallet</Button>
+              </Link>
             </div>
-          )}
 
-          <div className="hidden md:flex gap-3 flex-wrap">
-            <Link href={`/trips/${trip.id}/expenses`}><Button variant="outline" size="sm"><Receipt className="h-4 w-4 mr-2" />Expenses</Button></Link>
-            <Link href={`/trips/${trip.id}/members`}><Button variant="outline" size="sm"><Users className="h-4 w-4 mr-2" />Members</Button></Link>
-            <Link href={`/trips/${trip.id}/wallet`}><Button variant="outline" size="sm"><Wallet className="h-4 w-4 mr-2" />Wallet</Button></Link>
-          </div>
+            <Tabs defaultValue="category">
+              <TabsList className="w-full md:w-auto">
+                <TabsTrigger value="category">By Category</TabsTrigger>
+                <TabsTrigger value="daily">Daily</TabsTrigger>
+                <TabsTrigger value="member">By Member</TabsTrigger>
+              </TabsList>
 
-          <Tabs defaultValue="category">
-            <TabsList>
-              <TabsTrigger value="category">By Category</TabsTrigger>
-              <TabsTrigger value="daily">Daily</TabsTrigger>
-              <TabsTrigger value="member">By Member</TabsTrigger>
-            </TabsList>
+              <TabsContent value="category">
+                <Card className="border-border">
+                  <CardHeader className="pb-2"><CardTitle className="text-base">Spending by Category</CardTitle></CardHeader>
+                  <CardContent>
+                    {categoryData.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8 text-sm">No expenses yet</p>
+                    ) : (
+                      <div className="h-[240px] md:h-[300px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} innerRadius={40}>
+                              {categoryData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                            </Pie>
+                            <Tooltip formatter={(v) => formatCurrency(Number(v), trip.currency)} />
+                            <Legend wrapperStyle={{ paddingTop: 8, fontSize: 12 }} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            <TabsContent value="category">
-              <Card>
-                <CardHeader><CardTitle>Spending by Category</CardTitle></CardHeader>
-                <CardContent>
-                  {categoryData.length === 0 ? (
-                    <p className="text-center text-muted-foreground py-8">No expenses yet</p>
-                  ) : (
-                    <div className="h-[240px] md:h-[300px]">
+              <TabsContent value="daily">
+                <Card className="border-border">
+                  <CardHeader className="pb-2"><CardTitle className="text-base">Daily Spending</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="h-[200px] md:h-[300px]">
                       <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}>
-                            {categoryData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                          </Pie>
-                          <Tooltip formatter={(v) => formatCurrency(Number(v), trip.currency)} />
-                          <Legend wrapperStyle={{ paddingTop: 8 }} />
-                        </PieChart>
+                        <BarChart data={dailyData}>
+                          <XAxis dataKey="date" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                          <Tooltip formatter={(v) => formatCurrency(Number(v), trip.currency)} cursor={{ fill: 'var(--muted)' }} />
+                          <Bar dataKey="amount" fill="var(--color-chart-1)" radius={[4, 4, 0, 0]} />
+                        </BarChart>
                       </ResponsiveContainer>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
+                  </CardContent>
+                </Card>
+              </TabsContent>
 
-            <TabsContent value="daily">
-              <Card>
-                <CardHeader><CardTitle>Daily Spending</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="h-[200px] md:h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dailyData}>
-                        <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                        <YAxis tick={{ fontSize: 12 }} />
-                        <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
-                        <Bar dataKey="amount" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="member">
-              <Card>
-                <CardHeader><CardTitle>Spending by Member</CardTitle></CardHeader>
-                <CardContent>
-                  <div className="h-[200px] md:h-[300px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={memberSpendingData} layout="vertical">
-                        <XAxis type="number" tick={{ fontSize: 12 }} />
-                        <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} />
-                        <Tooltip formatter={(v) => `${trip.currency} ${Number(v).toFixed(2)}`} />
-                        <Bar dataKey="spent" radius={[0, 4, 4, 0]}>
-                          {memberSpendingData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-
-          {recentExpenses.length > 0 && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Recent Expenses</CardTitle>
-                <Link href={`/trips/${trip.id}/expenses`}>
-                  <Button variant="ghost" size="sm" aria-label="View all expenses">View All</Button>
-                </Link>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {recentExpenses.map(e => (
-                  <div key={e.id} className="flex items-center justify-between py-1 border-b last:border-0">
-                    <div>
-                      <p className="font-medium text-sm">{e.description}</p>
-                      <p className="text-xs text-muted-foreground">{format(new Date(e.date), 'MMM d')} · {CATEGORIES[e.category as keyof typeof CATEGORIES]?.label}</p>
+              <TabsContent value="member">
+                <Card className="border-border">
+                  <CardHeader className="pb-2"><CardTitle className="text-base">Spending by Member</CardTitle></CardHeader>
+                  <CardContent>
+                    <div className="h-[200px] md:h-[300px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={memberSpendingData} layout="vertical">
+                          <XAxis type="number" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="name" width={80} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                          <Tooltip formatter={(v) => formatCurrency(Number(v), trip.currency)} cursor={{ fill: 'var(--muted)' }} />
+                          <Bar dataKey="spent" radius={[0, 4, 4, 0]}>
+                            {memberSpendingData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
                     </div>
-                    <span className="font-semibold text-sm">{formatCurrency(parseFloat(e.amount), trip.currency)}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
 
-    </div>
+            {recentExpenses.length > 0 && (
+              <Card className="border-border">
+                <CardHeader className="flex flex-row items-center justify-between pb-3">
+                  <CardTitle className="text-base font-semibold">Recent Expenses</CardTitle>
+                  <Link href={`/trips/${trip.id}/expenses`}>
+                    <Button variant="ghost" size="sm" className="text-primary hover:text-primary" aria-label="View all expenses">View All</Button>
+                  </Link>
+                </CardHeader>
+                <CardContent className="space-y-0">
+                  {recentExpenses.map((e, idx) => (
+                    <div key={e.id} className={`flex items-center justify-between py-2.5 ${idx < recentExpenses.length - 1 ? 'border-b border-border' : ''}`}>
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{e.description}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {format(new Date(e.date), 'MMM d')} · {CATEGORIES[e.category as keyof typeof CATEGORIES]?.label}
+                        </p>
+                      </div>
+                      <span className="font-semibold text-sm tabular-nums shrink-0 ml-3">{formatCurrency(parseFloat(e.amount), trip.currency)}</span>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </>
+        )}
+      </div>
     </>
   )
 }

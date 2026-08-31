@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { MapPin, Receipt, Users, ArrowLeftRight, Settings } from 'lucide-react'
+import { MapPin, Receipt, Users, ArrowLeftRight, Settings, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function BottomNav() {
@@ -14,7 +14,8 @@ export function BottomNav() {
         { href: `/trips/${tripId}`, label: 'Dashboard', icon: MapPin },
         { href: `/trips/${tripId}/expenses`, label: 'Expenses', icon: Receipt },
         { href: `/trips/${tripId}/members`, label: 'Members', icon: Users },
-        { href: `/trips/${tripId}/settle`, label: 'Settle Up', icon: ArrowLeftRight },
+        { href: `/trips/${tripId}/wallet`, label: 'Wallet', icon: Wallet },
+        { href: `/trips/${tripId}/settle`, label: 'Settle', icon: ArrowLeftRight },
       ]
     : [
         { href: '/trips', label: 'Trips', icon: MapPin },
@@ -22,7 +23,10 @@ export function BottomNav() {
       ]
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-background z-50" aria-label="Main navigation">
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 border-t bg-card/95 backdrop-blur-sm z-50 shadow-[0_-1px_0_0_var(--border)]"
+      aria-label="Main navigation"
+    >
       <div className="flex" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         {items.map((item) => {
           const Icon = item.icon
@@ -36,12 +40,18 @@ export function BottomNav() {
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'relative flex-1 flex flex-col items-center py-2 text-xs transition-colors',
+                'relative flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >
-              {isActive && <span className="absolute top-0 inset-x-2 h-0.5 bg-primary rounded-full" />}
-              <Icon className="h-5 w-5 mb-1" />
+              <span
+                className={cn(
+                  'flex items-center justify-center w-10 h-6 rounded-full transition-colors',
+                  isActive ? 'bg-primary/10' : ''
+                )}
+              >
+                <Icon className="h-5 w-5" />
+              </span>
               {item.label}
             </Link>
           )

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { MapPin, Receipt, Users, ArrowLeftRight, Settings, LogOut, Wallet } from 'lucide-react'
+import { MapPin, Receipt, Users, ArrowLeftRight, Settings, LogOut, Wallet, LayoutDashboard } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -18,14 +18,18 @@ function TripNavItems({ tripId }: { tripId?: string }) {
   if (!tripId) return null
 
   const items = [
-    { href: `/trips/${tripId}`, label: 'Dashboard', icon: MapPin },
+    { href: `/trips/${tripId}`, label: 'Dashboard', icon: LayoutDashboard },
     { href: `/trips/${tripId}/expenses`, label: 'Expenses', icon: Receipt },
     { href: `/trips/${tripId}/members`, label: 'Members', icon: Users },
+    { href: `/trips/${tripId}/wallet`, label: 'Wallet', icon: Wallet },
     { href: `/trips/${tripId}/settle`, label: 'Settle Up', icon: ArrowLeftRight },
   ]
 
   return (
-    <div className="mt-2 border-t pt-2">
+    <div className="mt-4 pt-4 border-t border-border">
+      <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/50">
+        Current Trip
+      </p>
       {items.map((item) => {
         const Icon = item.icon
         const isActive =
@@ -37,11 +41,13 @@ function TripNavItems({ tripId }: { tripId?: string }) {
             href={item.href}
             aria-current={isActive ? 'page' : undefined}
             className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-              isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+              'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors font-medium',
+              isActive
+                ? 'bg-primary/10 text-primary border-l-2 border-primary -ml-px pl-[11px]'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
             )}
           >
-            <Icon className="h-4 w-4" />
+            <Icon className="h-4 w-4 shrink-0" />
             {item.label}
           </Link>
         )
@@ -62,20 +68,20 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="hidden md:flex flex-col w-64 border-r bg-card h-screen sticky top-0">
-      <div className="p-4 border-b bg-gradient-to-b from-primary/5 to-transparent">
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0">
+    <aside className="hidden md:flex flex-col w-64 border-r bg-sidebar h-screen sticky top-0">
+      <div className="p-4 border-b border-border">
+        <div className="flex items-center gap-3">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm">
             <Wallet className="h-4 w-4 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="font-bold text-sm leading-tight">Budget Tracker</h1>
-            <p className="text-xs text-muted-foreground leading-tight">Mission Trip Expenses</p>
+            <h1 className="font-bold text-sm leading-tight tracking-tight">Masa</h1>
+            <p className="text-[11px] text-muted-foreground leading-tight">Group trip expenses</p>
           </div>
         </div>
       </div>
 
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -85,11 +91,13 @@ export function Sidebar() {
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
+                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors font-medium',
+                isActive
+                  ? 'bg-primary/10 text-primary border-l-2 border-primary -ml-px pl-[11px]'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
               )}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 shrink-0" />
               {item.label}
             </Link>
           )
@@ -97,8 +105,12 @@ export function Sidebar() {
         <TripNavItems tripId={tripId} />
       </nav>
 
-      <div className="p-3 border-t">
-        <Button variant="ghost" className="w-full justify-start gap-3" onClick={handleSignOut}>
+      <div className="p-3 border-t border-border">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-muted-foreground hover:text-foreground text-sm font-medium"
+          onClick={handleSignOut}
+        >
           <LogOut className="h-4 w-4" />
           Sign Out
         </Button>

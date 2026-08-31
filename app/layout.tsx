@@ -7,8 +7,8 @@ import { Toaster } from '@/components/ui/sonner'
 const geist = Geist({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Budget Tracker',
-  description: 'Track your mission trip expenses',
+  title: 'Masa',
+  description: 'Track your group trip expenses',
   manifest: '/manifest.json',
   icons: { icon: '/icon.svg', apple: '/icon.svg' },
 }
