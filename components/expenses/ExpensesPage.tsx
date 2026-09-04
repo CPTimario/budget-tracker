@@ -169,7 +169,7 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
                                   variant="ghost"
                                   size="icon-xl"
                                   aria-label="Edit expense"
-                                  className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                  className="text-muted-foreground hover:text-foreground"
                                   onClick={() => { setEditExpense(expense); setOpen(true) }}
                                 >
                                   <Pencil className="h-3.5 w-3.5" />
@@ -178,7 +178,7 @@ export function ExpensesPage({ tripId, initialTrip, initialMembers, initialExpen
                                   variant="ghost"
                                   size="icon-xl"
                                   aria-label="Delete expense"
-                                  className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                                  className="text-muted-foreground hover:text-destructive"
                                   onClick={() => setPendingDeleteId(expense.id)}
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />

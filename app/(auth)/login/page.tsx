@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Wallet } from 'lucide-react'
 
 type Message = { text: string; type: 'success' | 'error' } | null
 
@@ -79,10 +78,8 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-background p-4">
       <div className="flex flex-col items-center gap-6 w-full max-w-sm">
         <div className="flex items-center gap-2">
-          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-            <Wallet className="h-5 w-5 text-primary-foreground" />
-          </div>
-          <span className="text-xl font-bold">Budget Tracker</span>
+          <img src="/icon.svg" alt="Masa" className="h-10 w-10" />
+          <span className="text-xl font-bold">Masa</span>
         </div>
         <Card className="w-full">
           <CardHeader className="text-center">
@@ -120,6 +117,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
+                  autoComplete="email"
                   placeholder="Email address"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -134,7 +132,7 @@ export default function LoginPage() {
             {message && (
               <p
                 className={`text-sm text-center ${message.type === 'error' ? 'text-destructive' : 'text-green-600'}`}
-                role={message.type === 'error' ? 'alert' : undefined}
+                role={message.type === 'error' ? 'alert' : 'status'}
               >
                 {message.text}
               </p>

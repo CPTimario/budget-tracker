@@ -64,11 +64,10 @@ export async function updateMember(id: string, tripId: string, data: Partial<z.i
           })
       }
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await tx.update(members).set({
       ...rest,
       ...(initialBudget !== undefined ? { initialBudget: String(initialBudget) } : {}),
-    } as any).where(eq(members.id, id))
+    }).where(eq(members.id, id))
   })
   revalidatePath(`/trips/${tripId}/members`)
 }

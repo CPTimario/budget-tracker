@@ -11,7 +11,10 @@ interface Props {
 
 export function MobilePageHeader({ title, backHref, action }: Props) {
   return (
-    <header className="md:hidden sticky top-0 z-40 flex items-center px-3 py-2 border-b bg-background/95 backdrop-blur">
+    <header
+      className="md:hidden sticky top-0 z-40 flex items-center px-3 border-b bg-background/95 backdrop-blur"
+      style={{ paddingTop: 'env(safe-area-inset-top, 0px)', paddingBottom: '0.5rem' }}
+    >
       {backHref ? (
         <Link href={backHref} aria-label="Go back">
           <Button variant="ghost" size="icon">

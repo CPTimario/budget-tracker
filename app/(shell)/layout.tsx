@@ -1,5 +1,6 @@
 import { Sidebar } from '@/components/shell/Sidebar'
 import { BottomNav } from '@/components/shell/BottomNav'
+import { PageTransition } from '@/components/shell/PageTransition'
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -16,7 +17,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         aria-label="Main content"
         className="flex-1 pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0"
       >
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
       <BottomNav />
     </div>

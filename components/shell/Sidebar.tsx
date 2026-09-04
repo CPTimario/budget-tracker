@@ -71,9 +71,7 @@ export function Sidebar() {
     <aside className="hidden md:flex flex-col w-64 border-r bg-sidebar h-screen sticky top-0">
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center shrink-0 shadow-sm">
-            <Wallet className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src="/icon.svg" alt="Masa" className="h-8 w-8 shrink-0" />
           <div>
             <h1 className="font-bold text-sm leading-tight tracking-tight">Masa</h1>
             <p className="text-[11px] text-muted-foreground leading-tight">Group trip expenses</p>

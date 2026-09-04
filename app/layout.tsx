@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: 'Masa',
   description: 'Track your group trip expenses',
   manifest: '/manifest.json',
-  icons: { icon: '/icon.svg', apple: '/icon.svg' },
+  icons: { icon: '/icon.svg', apple: '/apple-touch-icon.png' },
 }
 
 export const viewport: Viewport = {

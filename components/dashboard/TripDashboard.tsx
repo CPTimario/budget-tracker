@@ -9,7 +9,7 @@ import { format, eachDayOfInterval, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
-import { Receipt, Users, Wallet, DollarSign, TrendingDown, TrendingUp } from 'lucide-react'
+import { Receipt, Users, Wallet, DollarSign, TrendingDown, TrendingUp, Minus } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SectionHeader } from '@/components/ui/section-header'
 import type { Trip, Member, Expense, ExpenseSplit, Settlement, Transfer } from '@/lib/db/schema'
@@ -209,7 +209,8 @@ export function TripDashboard({ trip, members: rawMembers, expenses, expenseSpli
                                     <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium shrink-0">You</span>
                                   )}
                                 </div>
-                                <span className={`text-xs font-semibold ${balance > 0 ? 'text-success' : balance < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                <span className={`text-xs font-semibold flex items-center gap-0.5 ${balance > 0 ? 'text-success' : balance < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                                  {balance > 0 ? <TrendingUp className="h-3 w-3" /> : balance < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
                                   {balance > 0 ? `+${formatCurrency(balance, trip.currency)}` : balance < 0 ? `-${formatCurrency(Math.abs(balance), trip.currency)}` : 'Settled'}
                                 </span>
                               </div>

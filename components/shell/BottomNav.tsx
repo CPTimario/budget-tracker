@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { MapPin, Receipt, Users, ArrowLeftRight, Settings, Wallet } from 'lucide-react'
+import { LayoutDashboard, Receipt, Users, ArrowLeftRight, Settings, Wallet } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export function BottomNav() {
@@ -11,14 +11,14 @@ export function BottomNav() {
 
   const items = tripId
     ? [
-        { href: `/trips/${tripId}`, label: 'Dashboard', icon: MapPin },
+        { href: `/trips/${tripId}`, label: 'Dashboard', icon: LayoutDashboard },
         { href: `/trips/${tripId}/expenses`, label: 'Expenses', icon: Receipt },
         { href: `/trips/${tripId}/members`, label: 'Members', icon: Users },
         { href: `/trips/${tripId}/wallet`, label: 'Wallet', icon: Wallet },
-        { href: `/trips/${tripId}/settle`, label: 'Settle', icon: ArrowLeftRight },
+        { href: `/trips/${tripId}/settle`, label: 'Settle Up', icon: ArrowLeftRight },
       ]
     : [
-        { href: '/trips', label: 'Trips', icon: MapPin },
+        { href: '/trips', label: 'Trips', icon: LayoutDashboard },
         { href: '/settings', label: 'Settings', icon: Settings },
       ]
 
@@ -40,7 +40,7 @@ export function BottomNav() {
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'relative flex-1 flex flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium transition-colors',
+                'relative flex-1 flex flex-col items-center gap-0.5 py-2.5 text-xs font-medium transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground'
               )}
             >

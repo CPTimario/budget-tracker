@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import type { User } from '@supabase/supabase-js'
 
 interface Trip { id: string; name: string }
@@ -56,8 +57,10 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="p-6 max-w-lg space-y-6">
-      <h1 className="text-2xl font-bold">Settings</h1>
+    <>
+      <MobilePageHeader title="Settings" />
+      <div className="p-6 max-w-lg space-y-6 pb-[calc(4rem+env(safe-area-inset-bottom,0px))]">
+      <h1 className="hidden md:block text-2xl font-bold">Settings</h1>
 
       <Card>
         <CardHeader><CardTitle>Appearance</CardTitle></CardHeader>
@@ -117,5 +120,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
     </div>
+    </>
   )
 }

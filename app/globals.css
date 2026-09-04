@@ -77,7 +77,7 @@
   --secondary: oklch(0.96 0.003 240);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.96 0.003 240);
-  --muted-foreground: oklch(0.50 0.005 240);
+  --muted-foreground: oklch(0.42 0.006 240);
   --accent: oklch(0.94 0.008 155);
   --accent-foreground: oklch(0.32 0.14 155);
   --destructive: oklch(0.577 0.245 27.325);
@@ -151,5 +151,13 @@
   }
   html {
     @apply font-sans;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
   }
 }

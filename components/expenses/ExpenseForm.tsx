@@ -14,6 +14,7 @@ import { CATEGORIES } from '@/lib/categories'
 import { formatCurrency } from '@/lib/format'
 import { format } from 'date-fns'
 import { ChevronDown, RefreshCw } from 'lucide-react'
+import { Label } from '@/components/ui/label'
 
 const CURRENCIES = ['PHP', 'THB', 'USD', 'SGD', 'EUR']
 
@@ -154,15 +155,15 @@ export function ExpenseForm({ tripId, members, currency, expense, defaultPaidByI
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label className="sr-only" htmlFor="description">Description</label>
-        <Input id="description" placeholder="Description" {...register('description')} />
+        <Label htmlFor="description">Description</Label>
+        <Input id="description" placeholder="Description" autoComplete="off" className="mt-1" {...register('description')} />
         {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
       </div>
 
       <div className="flex gap-2">
         <div className="flex-1">
-          <label className="sr-only" htmlFor="amount">Amount</label>
-          <Input id="amount" type="number" step="0.01" placeholder="Amount" {...register('amount', { valueAsNumber: true })} />
+          <Label htmlFor="amount">Amount</Label>
+          <Input id="amount" type="number" step="0.01" placeholder="Amount" className="mt-1" {...register('amount', { valueAsNumber: true })} />
           {errors.amount && <p className="text-xs text-destructive mt-1">{errors.amount.message}</p>}
         </div>
         <Select value={selectedCurrency ?? currency} onValueChange={handleCurrencyChange}>
@@ -240,7 +241,10 @@ export function ExpenseForm({ tripId, members, currency, expense, defaultPaidByI
         </Select>
       </div>
 
-      <Input type="date" {...register('date')} />
+      <div>
+        <Label htmlFor="date">Date</Label>
+        <Input id="date" type="date" className="mt-1" {...register('date')} />
+      </div>
 
       <div className="flex gap-2">
         <Button type="button" variant={type === 'personal' ? 'default' : 'outline'} size="sm" onClick={() => { setType('personal'); setValue('type', 'personal') }}>Personal</Button>

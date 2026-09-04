@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { createTrip } from '@/server/actions/trips'
+import { Label } from '@/components/ui/label'
 
 const schema = z.object({
   name: z.string().min(1, 'Name required'),
@@ -36,13 +37,13 @@ export function TripForm({ onCancel }: { onCancel?: () => void }) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
       <div>
-        <label htmlFor="tripName" className="sr-only">Trip name</label>
-        <Input id="tripName" placeholder="Trip name (e.g. Thailand Mission Trip 2026)" {...register('name')} />
+        <Label htmlFor="tripName">Trip name</Label>
+        <Input id="tripName" placeholder="e.g. Thailand Mission Trip 2026" className="mt-1" {...register('name')} />
         {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
       </div>
       <div>
-        <label htmlFor="tripDestination" className="sr-only">Destination</label>
-        <Input id="tripDestination" placeholder="Destination" {...register('destination')} />
+        <Label htmlFor="tripDestination">Destination</Label>
+        <Input id="tripDestination" placeholder="Destination" className="mt-1" {...register('destination')} />
         {errors.destination && <p className="text-xs text-destructive mt-1">{errors.destination.message}</p>}
       </div>
       <div className="grid grid-cols-2 gap-3">

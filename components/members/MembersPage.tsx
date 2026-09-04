@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogTitle, AlertDialogDescripti
 import { MobilePageHeader } from '@/components/shell/MobilePageHeader'
 import { Plus, Pencil, Trash2, Users } from 'lucide-react'
 import { EmptyState } from '@/components/ui/empty-state'
+import { Checkbox } from '@/components/ui/checkbox'
 import { createMember, updateMember, deleteMember } from '@/server/actions/members'
 import type { Member as DBMember } from '@/lib/db/schema'
 import { formatCurrency } from '@/lib/format'
@@ -63,6 +64,7 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
   })
 
   const watchedColor = watch('color')
+  const watchedIsSelf = watch('isSelf')
 
   function openAdd() {
     setEditMember(null)
@@ -171,7 +173,7 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
                         variant="ghost"
                         size="icon-xl"
                         aria-label="Edit member"
-                        className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                        className="text-muted-foreground hover:text-foreground"
                         onClick={() => openEdit(member)}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -180,7 +182,7 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
                         variant="ghost"
                         size="icon-xl"
                         aria-label="Remove member"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        className="text-muted-foreground hover:text-destructive"
                         onClick={() => setPendingDeleteMemberId(member.id)}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -226,14 +228,17 @@ export function MembersPage({ tripId, initialMembers = [], currency = 'PHP' }: {
                   aria-label={`Select color ${c}`}
                   aria-pressed={watchedColor === c}
                   onClick={() => setValue('color', c)}
-                  className={`h-7 w-7 rounded-full border-2 transition-all ${watchedColor === c ? 'border-foreground scale-110 shadow-sm' : 'border-transparent'}`}
+                  className={`h-8 w-8 rounded-full border-2 transition-all ${watchedColor === c ? 'border-foreground scale-110 shadow-sm' : 'border-transparent'}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
             </div>
           </div>
           <label className="flex items-center gap-2.5 cursor-pointer">
-            <input type="checkbox" {...register('isSelf')} className="rounded" />
+            <Checkbox
+              checked={watchedIsSelf}
+              onCheckedChange={(checked) => setValue('isSelf', checked)}
+            />
             <span className="text-sm font-medium">This is me</span>
           </label>
           <div className="flex gap-2 justify-end pt-1">

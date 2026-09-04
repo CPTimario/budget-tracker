@@ -12,7 +12,8 @@ import { computeBalances, simplifyDebts } from '@/lib/settlement'
 import { formatCurrency } from '@/lib/format'
 import { createSettlement } from '@/server/actions/settlements'
 import { format } from 'date-fns'
-import { ArrowRight, CheckCircle2, History } from 'lucide-react'
+import { ArrowRight, CheckCircle2, History, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SectionHeader } from '@/components/ui/section-header'
 import { CATEGORIES } from '@/lib/categories'
@@ -205,7 +206,8 @@ export function SettlePage({
                       />
                       <span className="font-medium text-sm truncate">{member.name}</span>
                     </div>
-                    <span className={`text-base font-bold tabular-nums ${balance >= 0 ? 'text-success' : 'text-destructive'}`}>
+                    <span className={`text-base font-bold tabular-nums flex items-center gap-1 ${balance > 0 ? 'text-success' : balance < 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                      {balance > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : balance < 0 ? <TrendingDown className="h-3.5 w-3.5" /> : <Minus className="h-3.5 w-3.5" />}
                       {balance >= 0 ? '+' : ''}{formatCurrency(balance, currency)}
                     </span>
                   </CardContent>
@@ -319,17 +321,10 @@ export function SettlePage({
                 <div className="border border-border rounded-xl overflow-hidden">
                   <button
                     type="button"
-                    role="checkbox"
-                    aria-checked={allChecked}
                     className="flex items-center gap-3 px-3 py-2 bg-muted/50 cursor-pointer hover:bg-muted transition-colors w-full text-left"
                     onClick={toggleAll}
                   >
-                    <span
-                      className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center ${allChecked ? 'bg-primary border-primary' : 'border-input bg-background'}`}
-                      aria-hidden
-                    >
-                      {allChecked && <span className="block h-2 w-2 bg-primary-foreground rounded-sm" />}
-                    </span>
+                    <Checkbox checked={allChecked} onCheckedChange={toggleAll} />
                     <span className="text-xs font-semibold text-muted-foreground">All expenses</span>
                   </button>
                   <div className="divide-y divide-border max-h-56 overflow-y-auto">
@@ -341,8 +336,6 @@ export function SettlePage({
                         <button
                           key={item.splitId}
                           type="button"
-                          role="checkbox"
-                          aria-checked={isPaid ? false : checked}
                           disabled={isPaid}
                           className={`flex items-center gap-3 px-3 py-2.5 transition-colors w-full text-left ${
                             isPaid
@@ -351,14 +344,7 @@ export function SettlePage({
                           }`}
                           onClick={() => !isPaid && toggleItem(item.splitId)}
                         >
-                          <span
-                            className={`h-4 w-4 shrink-0 rounded border flex items-center justify-center ${
-                              !isPaid && checked ? 'bg-primary border-primary' : 'border-input bg-background'
-                            }`}
-                            aria-hidden
-                          >
-                            {!isPaid && checked && <span className="block h-2 w-2 bg-primary-foreground rounded-sm" />}
-                          </span>
+                          <Checkbox checked={!isPaid && checked} disabled={isPaid} onCheckedChange={() => !isPaid && toggleItem(item.splitId)} />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium truncate">{item.description}</p>
